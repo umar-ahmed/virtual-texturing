@@ -1,14 +1,10 @@
-THREE.ShaderLib[ "render_with_vt" ] = {
-  uniforms: THREE.UniformsUtils.merge( [
-
-    THREE.UniformsLib[ "vt" ],
-
-    {
+export const RenderWithVtShader = {
+  uniforms: {
       "tDiffuse"     : { type: "t", value: null },
       "tNormal"    : { type: "t", value: null },
       "tSpecular"    : { type: "t", value: null },
 
-      // light variables (from THREE)   
+      // light variables (from THREE)
       ambientLightColor : { type: "fv", value: [] },
 
       directionalLightDirection : { type: "fv", value: [] },
@@ -27,8 +23,8 @@ THREE.ShaderLib[ "render_with_vt" ] = {
       spotLightDirection : { type: "fv", value: [] },
       spotLightDistance : { type: "fv1", value: [] },
       spotLightAngleCos : { type: "fv1", value: [] },
-      spotLightExponent : { type: "fv1", value: [] },       
-    
+      spotLightExponent : { type: "fv1", value: [] },
+
       //
       enableDiffuse : { type: 'i', value: 0 },
       enableSpecular : { type: 'i', value: 0 },
@@ -38,22 +34,17 @@ THREE.ShaderLib[ "render_with_vt" ] = {
       uDiffuseColor : { type: 'c', value: {r:1,g:1,b:1} },
       uSpecularColor : { type: 'c', value: {r:1,g:1,b:1} },
       uAmbientColor : { type: 'c', value: {r:1,g:1,b:1} },
-    
+
       //
       uShininess : { type: 'f', value: 30.0 },
       uOpacity : { type: 'f', value: 1.0 },
       uOffset : { type: 'v2', value: {x:0,y:0} },
       uRepeat : { type: 'v2', value: {x:1,y:1} }
 
-    }, // end of 
-  ] ),
-  //uniforms : 
-  
+    },
 
   fragmentShader: [
 
-    THREE.ShaderChunk["vt_pars_fragment"],
-    
     "uniform sampler2D tDiffuse;",
     "uniform sampler2D tNormal;",
     "uniform sampler2D tSpecular;",
@@ -77,9 +68,9 @@ THREE.ShaderLib[ "render_with_vt" ] = {
 
     "uniform vec3 pointLightColor[ MAX_POINT_LIGHTS ];",
     "varying vec4 vPointLight[ MAX_POINT_LIGHTS ];",
-  
+
     "varying vec3 vViewPosition;",
-  
+
     "void main() ",
     "{",
       "vec4 diffuseMap = texture2D(tDiffuse, vUv);",
@@ -126,7 +117,7 @@ THREE.ShaderLib[ "render_with_vt" ] = {
         "vec3 pointHalfVector = normalize( pointVector + viewPosition );",
         "float pointDotNormalHalf = max( dot( normal, pointHalfVector ), 0.0 );",
         "float pointSpecularWeight = specularTex.r * max( pow( pointDotNormalHalf, uShininess ), 0.0 );",
-      
+
         // 2.0 => 2.0001 is hack to work around ANGLE bug
         "float specularNormalization = ( uShininess + 2.0001 ) / 8.0;",
 
@@ -144,7 +135,7 @@ THREE.ShaderLib[ "render_with_vt" ] = {
       "gl_FragColor.xyz = gl_FragColor.xyz * ( totalDiffuse + ambientLightColor * uAmbientColor) + totalSpecular;",
       "gl_FragColor.xyz = sqrt( gl_FragColor.xyz );",
     "}"
-          
+
   ].join("\n"), // end of fragment shader
 
   vertexShader: [
@@ -165,7 +156,7 @@ THREE.ShaderLib[ "render_with_vt" ] = {
     "varying vec3 vViewPosition;",
 
     "void main() {",
-    
+
       "vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );",
       "vViewPosition = -mvPosition.xyz;",
 
@@ -188,12 +179,12 @@ THREE.ShaderLib[ "render_with_vt" ] = {
 
         "lVector = normalize( lVector );",
 
-        "vPointLight[ i ] = vec4( lVector, lDistance );", 
+        "vPointLight[ i ] = vec4( lVector, lDistance );",
 
       "}",
 
 
-      "gl_Position = projectionMatrix * mvPosition;",       
+      "gl_Position = projectionMatrix * mvPosition;",
     "}"
 
   ].join("\n") // end of vertex shader

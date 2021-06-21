@@ -7,7 +7,7 @@
 
   <body>
 
-    <div class="container background">  
+    <div class="container background">
       <div class="header"></div>
       <div class="content">
         <div id="canvas_container"></div>
@@ -19,15 +19,12 @@
     <script type="text/javascript" src="examples/js/Clock.js"></script>
     <script type="text/javascript" src="examples/js/FirstPersonControls.js"></script>
 
-    <script type="text/javascript" src="src/Shaders.js"></script>
-    <script type="text/javascript" src="src/VirtualTexture.js"></script>
+    <script type="module">
+      import { APP } from './examples/js/Main.js';
 
-    <script type="text/javascript" src="examples/js/Shaders.js"></script>
-    <script type="text/javascript" src="examples/js/Main.js"></script>
+      const app = new APP();
 
-    <script>
-
-      APP.start();
+      app.start();
 
       var config = {
         enabled: true,
@@ -45,9 +42,9 @@
 
       var geometry = new THREE.PlaneGeometry(100, 100, 100);
 
-      APP.load(geometry, config);
+      app.load(geometry, config);
 
-      APP.run();
+      app.run();
 
     </script>
   </body>

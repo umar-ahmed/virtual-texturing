@@ -2,44 +2,36 @@
  * @author Francico Avila - http://franciscoavila.mx
  */
 
-var APP = {};
+import { RenderWithVtShader } from './RenderWithVtShader.js';
+import * as VT from '../../src/VirtualTexture.js';
 
-(function () {
-  "use strict";
+export class APP {
+  constructor(canvas) {
+    this.domContainer = document.getElementById(canvas || "canvas_container");
+    this.scene = null;
+    this.renderer = null;
+    this.camera = null;
+    this.controls = null;
+    this.mesh = null;
+    this.clock = new THREE.Clock();
 
-  /*global VT,THREE,Detector,requestAnimationFrame*/
-  /*jslint browser: true*/
+    this.virtualTexture = null;
 
-  /***************************************************************************
-   * Global Variables
-   */
-
-  // three.js variables
-  var scene = null;
-  var renderer = null;
-  var camera = null;
-  var controls = null;
-  var mesh = null;
-  var clock = new THREE.Clock();
-
-  var domContainer = null;
-  var virtualTexture = null;
-
-  /***************************************************************************
-   * Initialiaze application
-   */
-
-  function resize() {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
   }
 
-  function onKeyDown(e) {
-    //1
-    var uniforms = mesh.material.uniforms;
 
-    if (49 === e.keyCode) {
+  resize() {
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.updateProjectionMatrix();
+  }
+
+  onKeyDown(e) {
+    //1
+    var uniforms = this.mesh.material.uniforms;
+
+    switch ( e.keyCode ) {
+    case 49: // 1
       uniforms.bVirtualTextureDebugUvs.value = 0;
       uniforms.bVirtualTextureDebugDiscontinuities.value = 0;
       uniforms.bVirtualTextureDebugMipMapLevel.value = 0;
@@ -47,8 +39,9 @@ var APP = {};
       uniforms.bVirtualTextureDebugUvs.needsUpdate = true;
       uniforms.bVirtualTextureDebugDiscontinuities.needsUpdate = true;
       uniforms.bVirtualTextureDebugMipMapLevel.needsUpdate = true;
-
-    } else if (50 === e.keyCode) { //2
+      break;
+    case 50: // 2
+      console.log(e.keyCode);
       uniforms.bVirtualTextureDebugUvs.value = 0;
       uniforms.bVirtualTextureDebugDiscontinuities.value = 0;
       uniforms.bVirtualTextureDebugMipMapLevel.value = 1;
@@ -56,8 +49,9 @@ var APP = {};
       uniforms.bVirtualTextureDebugUvs.needsUpdate = true;
       uniforms.bVirtualTextureDebugDiscontinuities.needsUpdate = true;
       uniforms.bVirtualTextureDebugMipMapLevel.needsUpdate = true;
-
-    } else if (51 === e.keyCode) { //3
+      break;
+    case 51: // 3
+      console.log(e.keyCode);
       uniforms.bVirtualTextureDebugUvs.value = 1;
       uniforms.bVirtualTextureDebugDiscontinuities.value = 0;
       uniforms.bVirtualTextureDebugMipMapLevel.value = 0;
@@ -65,8 +59,9 @@ var APP = {};
       uniforms.bVirtualTextureDebugUvs.needsUpdate = true;
       uniforms.bVirtualTextureDebugDiscontinuities.needsUpdate = true;
       uniforms.bVirtualTextureDebugMipMapLevel.needsUpdate = true;
-
-    } else if (52 === e.keyCode) { //4
+      break;
+    case 52: // 4
+      console.log(e.keyCode);
       uniforms.bVirtualTextureDebugUvs.value = 0;
       uniforms.bVirtualTextureDebugDiscontinuities.value = 1;
       uniforms.bVirtualTextureDebugMipMapLevel.value = 0;
@@ -74,97 +69,97 @@ var APP = {};
       uniforms.bVirtualTextureDebugUvs.needsUpdate = true;
       uniforms.bVirtualTextureDebugDiscontinuities.needsUpdate = true;
       uniforms.bVirtualTextureDebugMipMapLevel.needsUpdate = true;
-
+      break;
+    default: //
+      break;
     }
   }
 
-  function render() {
-    if (virtualTexture && renderer.renderCount > 0) {
-      virtualTexture.render(renderer, camera);
+  render() {
+    if (this.virtualTexture && this.renderer.renderCount > 0) {
+      this.virtualTexture.render(this.renderer, this.camera);
     }
 
-    ++renderer.renderCount;
-    renderer.render(scene, camera);
+    ++this.renderer.renderCount;
+    this.renderer.render(this.scene, this.camera);
   }
 
-  APP.run = function () {
-    var delta = clock.getDelta();
+  run() {
+    var delta = this.clock.getDelta();
 
-    controls.update(delta);
-    requestAnimationFrame(APP.run);
+    this.controls.update(delta);
+    requestAnimationFrame(this.run.bind(this));
 
-    render();
-  };
+    this.render();
+  }
 
-  APP.start = function () {
-
-    domContainer = document.getElementById("canvas_container");
+  start() {
 
   /*********************************************************************************/
-    // if browsers supports webgl   
+    // if browsers supports webgl
     if (Detector.webgl) {
 
       var width = window.innerWidth;
       var height = window.innerHeight;
       console.log("width:" + width + " height:" + height);
 
-      renderer = new THREE.WebGLRenderer();
-      renderer.gammaInput = true;
-      renderer.gammaOutput = true;
-      renderer.physicallyBasedShading = true;
-      renderer.renderCount = 0;
-      renderer.setSize(width, height);
+      this.renderer = new THREE.WebGLRenderer();
+      this.renderer.gammaInput = true;
+      this.renderer.gammaOutput = true;
+      this.renderer.physicallyBasedShading = true;
+      this.renderer.renderCount = 0;
+      this.renderer.setSize(width, height);
 
       // OES_standard_derivaties used to compute mip level on virtual texturing
-      renderer.context.getExtension("OES_standard_derivatives");
-      renderer.context.getExtension("OES_texture_float");
-      renderer.context.getExtension("OES_texture_float_linear");
+      this.renderer.context.getExtension("OES_standard_derivatives");
+      this.renderer.context.getExtension("OES_texture_float");
+      this.renderer.context.getExtension("OES_texture_float_linear");
 
-      domContainer.appendChild(renderer.domElement);
+      this.domContainer.appendChild(this.renderer.domElement);
 
       // create a scene
-      scene = new THREE.Scene();
+      this.scene = new THREE.Scene();
 
     /**********************************************************************************/
 
       // create lights and add them to the scene
       var lightFront = new THREE.PointLight(0xffffff, 1.5, 200); // light in front of model
       lightFront.position.set(-25, -25, 100);
-      scene.add(lightFront);
+      this.scene.add(lightFront);
 
       var lightBack = new THREE.PointLight(0xffffff, 1.5, 200); // light behind of model
       lightBack.position.set(-25, -25, -100);
-      scene.add(lightBack);
+      this.scene.add(lightBack);
 
     /**********************************************************************************/
 
       // put a camera in the scene
-      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
-      camera.position.set(0.0, 0.0, 80.0);
+      this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
+      this.camera.position.set(0.0, 0.0, 80.0);
 
-      scene.add(camera);
+      this.scene.add(this.camera);
 
     /**********************************************************************************/
 
-      controls = new THREE.FlyControls(camera, renderer.domElement);
-      controls.movementSpeed = 50;
-      controls.domElement = renderer.domElement;
-      controls.rollSpeed = Math.PI / 12;
-      controls.autoForward = false;
-      controls.dragToLook = true;
+      this.controls = new THREE.FlyControls(this.camera, this.renderer.domElement);
+      this.controls.movementSpeed = 50;
+      this.controls.domElement = this.renderer.domElement;
+      this.controls.rollSpeed = Math.PI / 12;
+      this.controls.autoForward = false;
+      this.controls.dragToLook = true;
 
-      /*controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.rotateSpeed = 1.0;
-      controls.zoomSpeed = 5.0;
-      controls.panSpeed = 0.8;
-      controls.noZoom = false;
-      controls.noPan = false;
-      controls.staticMoving = false;
-      controls.dynamicDampingFactor = 0.3;
-      controls.keys = [65, 83, 68];*/
+      /*this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.rotateSpeed = 1.0;
+      this.controls.zoomSpeed = 5.0;
+      this.controls.noZoom = false;
+      this.controls.panSpeed = 0.8;
+      this.controls.noPan = false;
+      this.controls.staticMoving = false;
+      this.controls.dynamicDampingFactor = 0.3;
+      this.controls.keys = [65, 83, 68];*/
 
-      window.addEventListener('keydown', onKeyDown, false);
-      window.addEventListener('resize', resize, false);
+      window.addEventListener('keydown', this.onKeyDown.bind(this), false);
+      window.addEventListener('resize', this.resize.bind(this), false);
 
       /**********************************************************************************/
 
@@ -175,21 +170,24 @@ var APP = {};
     // if browser doesn't support webgl, load this instead
     console.error('There was a problem loading WebGL');
     return false;
-  };
+  }
 
-  APP.load = function (geometry, config) {
+  load(geometry, config) {
 
     // create virtual texture
     geometry.computeTangents();
     geometry.computeVertexNormals();
 
-    virtualTexture = new THREE.VirtualTexture(renderer.context, config);
-    var material = THREE.createVirtualTextureMaterial(virtualTexture);
+    this.virtualTexture = new VT.VirtualTexture(this.renderer.context, config);
 
-    mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
+    var material = VT.createVirtualTextureMaterial(this.virtualTexture, RenderWithVtShader);
+    this.mesh = new THREE.Mesh(geometry, material);
+    this.scene.add(this.mesh);
 
-    THREE.duplicateGeometryForVirtualTexturing(geometry, virtualTexture);
-  };
+    VT.duplicateGeometryForVirtualTexturing(geometry, this.virtualTexture);
 
-}());
+    // init debug helpers
+    this.virtualTexture.tileDetermination.debug();
+    this.virtualTexture.indirectionTable.debug();
+  }
+};
