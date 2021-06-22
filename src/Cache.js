@@ -8,8 +8,7 @@ export const StatusPendingDelete = 2;
 
 export class Cache {
 
-  constructor(context, tileSize, padding, width, height) {
-    this.context = context;
+  constructor(tileSize, padding, width, height) {
     this.width = width;
     this.height = height;
 
@@ -266,23 +265,23 @@ export class Cache {
     return false;
   }
 
-  reset () {
+  reset (renderer) {
     try {
       var id = PageId.create(0, 4);
       var tile = new Tile(id);
 
-      this.cachePage(tile, true);
+      this.cachePage(renderer, tile, true);
 
     } catch (e) {
       console.log(e.stack);
     }
   }
 
-  drawToTexture (tile, x, y) {
+  drawToTexture (renderer, tile, x, y) {
     // update cache texture
     var i;
     if (tile.loaded) {
-      var gl = this.context;
+      var gl = renderer.context;
 
       gl.bindTexture(gl.TEXTURE_2D, this.textures.tDiffuse.__webglTexture);
       gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, gl.RGBA, gl.UNSIGNED_BYTE, tile.image);
@@ -321,7 +320,7 @@ export class Cache {
     return page;
   }
 
-  cachePage (tile, forced) {
+  cachePage (renderer, tile, forced) {
     try {
       var id = tile.id;
       var page = this.writeToCache(id, forced);
@@ -330,7 +329,7 @@ export class Cache {
       var x = parseInt((page % this.tileCountPerSide.x) * this.realTileSize.x, 10);
       var y = parseInt(Math.floor((page / this.tileCountPerSide.y)) * this.realTileSize.y, 10);
 
-      this.drawToTexture(tile, x, y);
+      this.drawToTexture(renderer, tile, x, y);
 
       return page;
     } catch (e) {

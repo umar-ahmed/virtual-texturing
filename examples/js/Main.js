@@ -174,11 +174,7 @@ export class APP {
 
   load(geometry, config) {
 
-    // create virtual texture
-    geometry.computeTangents();
-    geometry.computeVertexNormals();
-
-    this.virtualTexture = new VT.VirtualTexture(this.renderer.context, config);
+    this.virtualTexture = new VT.VirtualTexture(this.renderer, config);
 
     var material = VT.createVirtualTextureMaterial(this.virtualTexture, RenderWithVtShader);
     this.mesh = new THREE.Mesh(geometry, material);

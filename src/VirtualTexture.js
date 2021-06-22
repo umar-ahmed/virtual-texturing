@@ -73,7 +73,7 @@ export function createVirtualTextureMaterial ( virtualTexture, shader ) {
   //
 
 export class VirtualTexture {
-  constructor(context, params) {
+  constructor(renderer, params) {
     if (!params) {
       console.error('\'params\' is not defined. Virtual Texturing cannot start.');
       return;
@@ -83,8 +83,6 @@ export class VirtualTexture {
     this.tileSize = params.tileSize;
     this.tilePadding = params.tilePadding;
     this.cacheSize = params.cacheSize;
-
-    this.context = context;
 
     // init tile queue
     this.tileQueue = new TileQueue(2);
@@ -107,7 +105,7 @@ export class VirtualTexture {
     this.usageTable = null;
 
     this.needsUpdate = false;
-    this.init();
+    this.init(renderer);
   }
 
   render(renderer, camera) {
@@ -118,8 +116,8 @@ export class VirtualTexture {
       this.update(renderer);
     }
 
-  init() {
-
+  init(renderer) {
+console.log(renderer);
       // init tile determination program
       this.tileDetermination = new TileDetermination();
       this.tileDetermination.init(window.innerWidth, window.innerHeight);
@@ -132,7 +130,6 @@ export class VirtualTexture {
 
       // init page cache
       this.cache = new Cache(
-        this.context,
         this.tileSize,           // pageSizeRoot,
         this.tilePadding,          // padding,
         this.cacheSize,
@@ -156,7 +153,7 @@ export class VirtualTexture {
 
         if (!tileAlreadyOnCache) {
 
-          var handle = scope.cache.cachePage(tile, false);
+          var handle = scope.cache.cachePage(renderer, tile, false);
           var pageNumber = PageId.getPageNumber(tile.id);
           var mipMapLevel = PageId.getMipMapLevel(tile.id);
 
