@@ -115,7 +115,7 @@ export class VirtualTexture {
       renderer.render(this.tileDetermination.scene, camera, this.tileDetermination.renderTarget, false);
 
       //this.needsUpdate = true;
-      this.update();
+      this.update(renderer);
     }
 
   init() {
@@ -127,10 +127,7 @@ export class VirtualTexture {
 
       // init page table
       var cacheSize = this.size / this.tileSize;
-      this.indirectionTable = new IndirectionTable(
-        this.context,
-        cacheSize
-      );
+      this.indirectionTable = new IndirectionTable(cacheSize);
       console.log("Indirection table size: " + cacheSize);
 
       // init page cache
@@ -189,10 +186,10 @@ export class VirtualTexture {
       this.tileQueue.push(tile);
     }
 
-    update () {
+    update (renderer) {
 
       // parse render taget pixels (mip map levels and visible tile)
-      this.tileDetermination.parseImage(this.context, this.usageTable);
+      this.tileDetermination.parseImage(renderer, this.usageTable);
 
       //console.log(this.cache)
       var element, level, isUsed;
@@ -300,7 +297,7 @@ export class VirtualTexture {
             "\nFree:\t\t"   + cacheStatusData.free +
             "\nMarkedFree:\t"   + cacheStatusData.markedFree);*/
 
-      this.indirectionTable.update(this.cache);
+      this.indirectionTable.update(renderer, this.cache);
       this.usageTable.clear();
     }
   };

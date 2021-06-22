@@ -11,21 +11,19 @@
 import { NodeTree } from './NodeTree.js';
 
 export class IndirectionTable {
-  constructor(context, size) {
+  constructor(size) {
 
     // quad-tree representation
     this.nodes = null;
     this.offsets = [];
     this.maxLevel = 0;
     this.size = size;
-    this.numElementsPerLevel = [];
 
     // graphics and webgl stuff
     this.dataArray = new Float32Array(size * size * 4);
     this.canvas = null;
     this.imageData = null;
     this.texture = null;
-    this.context = context;
     this.dataPerLevel = [];
 
     this.init(size);
@@ -34,19 +32,15 @@ export class IndirectionTable {
   init (size) {
     this.maxLevel = Math.floor(Math.log(size) / Math.log(2));
 
-    var i, j, offset, numElements;
-    var accumulator = 0;
-    var sizeOnLevel = size;
+    let i, j, offset;
+    let accumulator = 0;
+    let numElements = size * size;
     for (i = 0; i <= this.maxLevel; ++i) {
 
       this.offsets.push(accumulator);
-
-      numElements = sizeOnLevel * sizeOnLevel;
-      this.numElementsPerLevel.unshift(numElements);
       this.dataPerLevel.push(new Float32Array(numElements * 4));
       accumulator += numElements;
-
-      sizeOnLevel >>= 1;
+      numElements >>= 2;
     }
 
     //this.nodes = new Array(accumulator);
@@ -56,8 +50,8 @@ export class IndirectionTable {
     }
 
     for (i = 0; i < this.dataPerLevel.length; ++i) {
-      numElements = this.numElementsPerLevel[i];
-      for (j = 0; j < numElements; j += 4) {
+      const numData = this.dataPerLevel[i].length;
+      for (j = 0; j < numData; j += 4) {
         this.dataPerLevel[i][j] = 0.0;
         this.dataPerLevel[i][j + 1] = 0.0;
         this.dataPerLevel[i][j + 2] = 0.0;
@@ -65,14 +59,7 @@ export class IndirectionTable {
       }
     }
 
-    // ------------------------------------------------
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = size;
-    this.canvas.height = size;
-    this.imageData = this.canvas.getContext('2d').createImageData(this.canvas.width, this.canvas.height);
-
-    numElements = size * size;
-    for (i = 0; i < numElements; ++i) {
+    for (i = 0; i < this.dataArray.length; ++i) {
       offset = i * 4;
       this.dataArray[offset] = 0.0;
       this.dataArray[offset + 1] = 0.0;
@@ -99,7 +86,10 @@ export class IndirectionTable {
 
   debug (params) {
 
-    var scope = this;
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = this.size;
+    this.canvas.height = this.size;
+    this.imageData = this.canvas.getContext('2d').createImageData(this.canvas.width, this.canvas.height);
 
     var verticalPosition = (params && params.verticalPosition) ? params.verticalPosition : 130;
     var horizontalPosition = (params && params.horizontalPosition) ? params.horizontalPosition : 10;
@@ -128,15 +118,15 @@ export class IndirectionTable {
     divTitle.innerHTML = "Indirection Table";
     document.body.appendChild(divTitle);
 
-    scope.canvas.style.top = verticalPosition + lineHeight + "px";
-    scope.canvas.style.left = horizontalPosition + "px";
-    scope.canvas.style.position = position;
-    scope.canvas.style.zIndex = zIndex;
-    scope.canvas.style.borderColor = borderColor;
-    scope.canvas.style.borderStyle = borderStyle;
-    scope.canvas.style.borderWidth = borderWidth + "px";
+    this.canvas.style.top = verticalPosition + lineHeight + "px";
+    this.canvas.style.left = horizontalPosition + "px";
+    this.canvas.style.position = position;
+    this.canvas.style.zIndex = zIndex;
+    this.canvas.style.borderColor = borderColor;
+    this.canvas.style.borderStyle = borderStyle;
+    this.canvas.style.borderWidth = borderWidth + "px";
 
-    document.body.appendChild(scope.canvas);
+    document.body.appendChild(this.canvas);
   }
 
   setChildren (entry, level, value, predicate) {
@@ -167,7 +157,7 @@ export class IndirectionTable {
     }
   }
 
-  update (cache) {
+  update (renderer, cache) {
 
     var i, x, y, root, height, width, scope, lowerX, lowerY, idx, node, mipMapLevel;
 
@@ -207,10 +197,10 @@ export class IndirectionTable {
       scope.canvas.getContext('2d').putImageData(scope.imageData, _x, _y);
     }
 
-    function writeToTexture() {
+    function writeToTexture(renderer) {
       // update indirection texture on GPU memory
       if (scope.texture.__webglTexture) {
-        var gl = scope.context;
+        var gl = renderer.context;
         gl.bindTexture(gl.TEXTURE_2D, scope.texture.__webglTexture);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, scope.size, scope.size, gl.RGBA, gl.FLOAT, scope.dataArray);
       }
@@ -279,11 +269,8 @@ export class IndirectionTable {
 
     setData(0);
     writeToCanvas();
-    writeToTexture();
+    writeToTexture(renderer);
 
-    //console.log(scope.numElementsPerLevel);
-    //console.log(scope.dataPerLevel);
-    //console.log(scope.dataArray);
   }
 
   getLevelWidth (level) {

@@ -80,34 +80,30 @@ export class TileDetermination {
     document.body.appendChild(this.canvas);
   }
 
+  parse(sparseTable) {
+    let i, r, g, b;
+    const numPixels = 4 * this.renderTarget.width * this.renderTarget.height;
 
-  parseImage (context, sparseTable) {
-    var scope = this;
+    for (i = 0; i < numPixels; i += 4) {
 
-    function parse(sparseTable) {
-      var i, offset, r, g, b;
-      var numPixels = scope.renderTarget.width * scope.renderTarget.height;
+      if (0 !== this.data[i + 3]) {
+        r = this.data[i];
+        g = this.data[i + 1];
+        b = this.data[i + 2];
 
-      for (i = 0; i < numPixels; ++i) {
-        offset = i * 4;
-
-        if (0 !== scope.data[offset + 3]) {
-          r = scope.data[offset];
-          g = scope.data[offset + 1];
-          b = scope.data[offset + 2];
-
-          sparseTable.set(r, g, b);
-        }
+        sparseTable.set(r, g, b);
       }
     }
+  }
 
+  parseImage (renderer, sparseTable) {
     // copy render buffer to this.data
-    var gl = context;
+    var gl = renderer.context;
     gl.pixelStorei(gl.PACK_ALIGNMENT, 4);
     gl.readPixels(0, 0, this.renderTarget.width, this.renderTarget.height, gl.RGBA, gl.UNSIGNED_BYTE, this.data);
 
     // parse uv and page id from render target
-    parse(sparseTable);
+    this.parse(sparseTable);
 
     if (this.canvas) {
       // copy the flipped texture to data
