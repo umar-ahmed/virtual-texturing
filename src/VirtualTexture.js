@@ -39,13 +39,9 @@ export function duplicateGeometryForVirtualTexturing (geometry, virtualTexture) 
 
 export function createVirtualTextureMaterial ( virtualTexture, shader ) {
     const uniforms = THREE.UniformsUtils.merge( [
-       VirtualTextureShader.uniforms, shader.uniforms ] );
-
-    for (const type in virtualTexture.cache.textures) {
-      if (virtualTexture.cache.textures.hasOwnProperty(type)) {
-        uniforms[type].value = virtualTexture.cache.textures[type];
-      }
-    }
+       VirtualTextureShader.uniforms,
+       THREE.UniformsLib.lights,
+       shader.uniforms ] );
 
     const pageSizeInTextureSpaceXY = {
       x: virtualTexture.cache.usablePageSize / virtualTexture.cache.size.x,
@@ -56,16 +52,12 @@ export function createVirtualTextureMaterial ( virtualTexture, shader ) {
     uniforms.tCacheIndirection.value = virtualTexture.indirectionTable.texture;
     uniforms.vCachePageSize.value = pageSizeInTextureSpaceXY;
     uniforms.vCacheSize.value = { x: virtualTexture.cache.width, y: virtualTexture.cache.height };
-
     uniforms.vTextureSize.value = virtualTexture.size;
     uniforms.fMaxMipMapLevel.value = virtualTexture.maxMipMapLevel;
 
-    uniforms.uNormalScale.value = { x: 1.0, y: 1.0 };
-    uniforms.enableDiffuse.value = true;
-    uniforms.enableSpecular.value = true;
+    uniforms.tDiffuse.value = virtualTexture.cache.textures.tDiffuse;
 
     const parameters = {
-      defines: { 'VIRTUAL_TEXTURE': true },
       uniforms: uniforms,
       fragmentShader: VirtualTextureShader.pars_fragment + shader.fragmentShader,
       vertexShader: shader.vertexShader,
