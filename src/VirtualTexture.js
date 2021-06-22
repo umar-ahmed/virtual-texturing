@@ -197,7 +197,7 @@ export class VirtualTexture {
       var alreadyCachedPagesCount = 0;
       var tilesRequestedCount = 0;
 
-      for (element in this.cache.cachedPages) {
+/*      for (element in this.cache.cachedPages) {
         if (this.cache.cachedPages.hasOwnProperty(element)) {
           element = parseInt(element, 10);
 
@@ -210,7 +210,7 @@ export class VirtualTexture {
           }
         }
       }
-
+*/
       var i, x, y, restored, wasRestored, pageId, pageNumber, mipMapLevel, elementCountAtLevel, status,
         useProgressiveLoading, maxParentMipMapLevel, newNumber, newPageId, newPageStatus, tmpId, hits, tile;
 

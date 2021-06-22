@@ -279,20 +279,11 @@ export class Cache {
   }
 
   drawToTexture (renderer, tile, x, y) {
-    // update cache texture
-    var i;
-    if (tile.loaded) {
-      var gl = renderer.context;
 
-      gl.bindTexture(gl.TEXTURE_2D, this.textures.tDiffuse.__webglTexture);
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, gl.RGBA, gl.UNSIGNED_BYTE, tile.image);
+    var gl = renderer.context;
+    gl.bindTexture(gl.TEXTURE_2D, this.textures.tDiffuse.__webglTexture);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, gl.RGBA, gl.UNSIGNED_BYTE, tile.image);
 
-    } else {
-
-      for (i = 0; i < tile.image.length; ++i) {
-        console.error('Tile ' + tile.image.src + ' was not available yet.');
-      }
-    }
   }
 
   writeToCache (id, forced) {
@@ -323,14 +314,18 @@ export class Cache {
 
   update(renderer) {
     for(const page in this.newPages) {
+
+      const tile = this.newPages[page];
+      if (!tile.loaded) continue;
+
       // compute x,y coordinate
       var x = parseInt((page % this.tileCountPerSide.x) * this.realTileSize.x, 10);
       var y = parseInt(Math.floor((page / this.tileCountPerSide.y)) * this.realTileSize.y, 10);
 
-      this.drawToTexture(renderer, this.newPages[page], x, y);
+      this.drawToTexture(renderer, tile, x, y);
+      delete this.newPages[page];
 
     }
-    this.newPages = {};
   }
 
 

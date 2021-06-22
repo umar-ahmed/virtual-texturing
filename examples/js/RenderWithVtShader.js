@@ -10,6 +10,8 @@ export const RenderWithVtShader = {
     "{",
       "vec2 uv = computeUvCoords( vUv );",
       "gl_FragColor = texture2D(tDiffuse, uv);",
+      //"gl_FragColor = texture2D(tDiffuse, vUv);",
+      //"gl_FragColor.xy = uv;",
     "}"
 
   ].join("\n"), // end of fragment shader
