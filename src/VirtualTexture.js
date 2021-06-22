@@ -83,6 +83,7 @@ export class VirtualTexture {
     this.tileSize = params.tileSize;
     this.tilePadding = params.tilePadding;
     this.cacheSize = params.cacheSize;
+    this.ratio = params.ratio;
 
     // init tile queue
     this.tileQueue = new TileQueue(2);
@@ -98,54 +99,58 @@ export class VirtualTexture {
       y: this.size / this.tileSize
     };
 
-    // objects
-    this.tileDetermination = null;
-    this.indirectionTable = null;
-    this.cache = null;
-    this.usageTable = null;
+    // init tile determination program
+    this.tileDetermination = new TileDetermination();
+    this.tileDetermination.scene.add();
+
+    // init page table
+    var cacheSize = this.size / this.tileSize;
+    this.indirectionTable = new IndirectionTable(cacheSize);
+    console.log("Indirection table size: " + cacheSize);
+
+    // init page cache
+    this.cache = new Cache(
+      this.tileSize,           // pageSizeRoot,
+      this.tilePadding,          // padding,
+      this.cacheSize,
+      this.cacheSize  // cacheSizeRoot
+    );
+
+    var scope = this;
+    this.cache.pageDroppedCallback = function (page, mipLevel) {
+      var handle = scope.indirectionTable.getElementAt(page, mipLevel).value;
+      scope.indirectionTable.set(page, mipLevel, -1);
+      scope.indirectionTable.setChildren(page, mipLevel, -1, handle);
+    };
+
+    // init usage table
+    this.usageTable = new UsageTable(this.indirectionTable.size);
 
     this.needsUpdate = false;
+
     this.init(renderer);
+
+    this.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  setSize( width, height ) {
+    
+    this.tileDetermination.setSize(
+      Math.floor( width * this.ratio ),
+      Math.floor( height * this.ratio )
+    );
+
   }
 
   render(renderer, camera) {
 
       renderer.render(this.tileDetermination.scene, camera, this.tileDetermination.renderTarget, false);
 
-      //this.needsUpdate = true;
       this.update(renderer);
     }
 
   init(renderer) {
-console.log(renderer);
-      // init tile determination program
-      this.tileDetermination = new TileDetermination();
-      this.tileDetermination.init(window.innerWidth, window.innerHeight);
-      this.tileDetermination.scene.add();
-
-      // init page table
-      var cacheSize = this.size / this.tileSize;
-      this.indirectionTable = new IndirectionTable(cacheSize);
-      console.log("Indirection table size: " + cacheSize);
-
-      // init page cache
-      this.cache = new Cache(
-        this.tileSize,           // pageSizeRoot,
-        this.tilePadding,          // padding,
-        this.cacheSize,
-        this.cacheSize  // cacheSizeRoot
-      );
-
       var scope = this;
-      this.cache.pageDroppedCallback = function (page, mipLevel) {
-        var handle = scope.indirectionTable.getElementAt(page, mipLevel).value;
-        scope.indirectionTable.set(page, mipLevel, -1);
-        scope.indirectionTable.setChildren(page, mipLevel, -1, handle);
-      };
-
-      // init usage table
-      this.usageTable = new UsageTable(this.indirectionTable.size);
-
       this.tileQueue.callback = function (tile) {
 
         var status = scope.cache.getPageStatus(tile.parentId);
@@ -173,17 +178,15 @@ console.log(renderer);
     resetCache () {
       // delete all entries in cache and set all slots as free
       this.cache.clear();
-
       // set all slots in page table as -1 (invalid)
       this.indirectionTable.clear(-1);
-
       var pageId = PageId.create(0, this.indirectionTable.maxLevel);
-      //var pageId = PageId.create(0, 0);
       var tile = new Tile(pageId, Number.MAX_VALUE);
       this.tileQueue.push(tile);
     }
 
     update (renderer) {
+      //if(!this.needsUpdate) return;
 
       // parse render taget pixels (mip map levels and visible tile)
       this.tileDetermination.parseImage(renderer, this.usageTable);

@@ -21,9 +21,12 @@ export class APP {
 
 
   resize() {
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    this.renderer.setSize(w, h);
+    this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.virtualTexture.setSize(w, h);
   }
 
   onKeyDown(e) {

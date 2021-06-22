@@ -11,25 +11,35 @@ export class TileDetermination {
     this.imgData = null;
   }
 
-  init (_width, _height) {
-    var renderTargetParameters = {
-      minFilter: THREE.NearestFilter,
-      magFilter: THREE.NearestFilter,
-      format: THREE.RGBAFormat,
-      stencilBufer: false
-    };
+  setSize (width, height) {
 
-    // TODO: resize rt on window resize
-    this.renderTarget = new THREE.WebGLRenderTarget(
-      Math.floor(_width * 0.125),
-      Math.floor(_height * 0.125),
-      renderTargetParameters
-    );
+    if (!this.renderTarget) {
+      var renderTargetParameters = {
+        minFilter: THREE.NearestFilter,
+        magFilter: THREE.NearestFilter,
+        format: THREE.RGBAFormat,
+        stencilBufer: false
+      };
 
-    var width = this.renderTarget.width;
-    var height = this.renderTarget.height;
+      this.renderTarget = new THREE.WebGLRenderTarget( width, height, renderTargetParameters );
+
+    } else if ( width != this.renderTarget.width ||  height != this.renderTarget.height ) {
+
+      // this.renderTarget.setSize(width, height); TODO after THREE upgrade
+
+    } else {
+
+      return;
+
+    }
 
     this.data = new Uint8Array(width * height * 4);
+    if (this.canvas) {
+      this.canvas.width = width;
+      this.canvas.height = height;
+      this.imgData = this.canvas.getContext('2d').createImageData(width, height);
+    }
+
   }
 
   debug () {
