@@ -177,7 +177,7 @@ export class APP {
 
   load(geometry, config) {
 
-    this.virtualTexture = new VT.VirtualTexture(this.renderer, config);
+    this.virtualTexture = new VT.VirtualTexture(config);
 
     var material = VT.createVirtualTextureMaterial(this.virtualTexture, RenderWithVtShader);
     this.mesh = new THREE.Mesh(geometry, material);

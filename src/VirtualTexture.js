@@ -73,7 +73,7 @@ export function createVirtualTextureMaterial ( virtualTexture, shader ) {
   //
 
 export class VirtualTexture {
-  constructor(renderer, params) {
+  constructor( params ) {
     if (!params) {
       console.error('\'params\' is not defined. Virtual Texturing cannot start.');
       return;
@@ -126,15 +126,34 @@ export class VirtualTexture {
     // init usage table
     this.usageTable = new UsageTable(this.indirectionTable.size);
 
+    this.tileQueue.callback = function (tile) {
+
+      var status = scope.cache.getPageStatus(tile.parentId);
+      var tileAlreadyOnCache = (StatusAvailable === status);
+
+      if (!tileAlreadyOnCache) {
+
+        var handle = scope.cache.cachePage(tile, false);
+        var pageNumber = PageId.getPageNumber(tile.id);
+        var mipMapLevel = PageId.getMipMapLevel(tile.id);
+
+        scope.indirectionTable.set(pageNumber, mipMapLevel, handle);
+        //++boundPages;
+      }
+
+      scope.needsUpdate = true;
+      //++erasedCount;
+    };
+    
     this.needsUpdate = false;
 
-    this.init(renderer);
+    this.init();
 
     this.setSize(window.innerWidth, window.innerHeight);
   }
 
   setSize( width, height ) {
-    
+
     this.tileDetermination.setSize(
       Math.floor( width * this.ratio ),
       Math.floor( height * this.ratio )
@@ -149,27 +168,7 @@ export class VirtualTexture {
       this.update(renderer);
     }
 
-  init(renderer) {
-      var scope = this;
-      this.tileQueue.callback = function (tile) {
-
-        var status = scope.cache.getPageStatus(tile.parentId);
-        var tileAlreadyOnCache = (StatusAvailable === status);
-
-        if (!tileAlreadyOnCache) {
-
-          var handle = scope.cache.cachePage(renderer, tile, false);
-          var pageNumber = PageId.getPageNumber(tile.id);
-          var mipMapLevel = PageId.getMipMapLevel(tile.id);
-
-          scope.indirectionTable.set(pageNumber, mipMapLevel, handle);
-          //++boundPages;
-        }
-
-        scope.needsUpdate = true;
-        //++erasedCount;
-      };
-
+    init() {
       this.resetCache();
 
       this.needsUpdate = true;
@@ -297,6 +296,7 @@ export class VirtualTexture {
             "\nFree:\t\t"   + cacheStatusData.free +
             "\nMarkedFree:\t"   + cacheStatusData.markedFree);*/
 
+      this.cache.update(renderer);
       this.indirectionTable.update(renderer, this.cache);
       this.usageTable.clear();
     }

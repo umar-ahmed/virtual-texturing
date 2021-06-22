@@ -44,6 +44,7 @@ export class Cache {
     this.freeSlots = [];
     this.slots = [];
     this.loadingQueue = [];
+    this.newPages = {};
 
     this.init();
     this.clear();
@@ -265,12 +266,12 @@ export class Cache {
     return false;
   }
 
-  reset (renderer) {
+  reset () {
     try {
       var id = PageId.create(0, 4);
       var tile = new Tile(id);
 
-      this.cachePage(renderer, tile, true);
+      this.cachePage(tile, true);
 
     } catch (e) {
       console.log(e.stack);
@@ -320,17 +321,24 @@ export class Cache {
     return page;
   }
 
-  cachePage (renderer, tile, forced) {
-    try {
-      var id = tile.id;
-      var page = this.writeToCache(id, forced);
-
+  update(renderer) {
+    for(const page in this.newPages) {
       // compute x,y coordinate
       var x = parseInt((page % this.tileCountPerSide.x) * this.realTileSize.x, 10);
       var y = parseInt(Math.floor((page / this.tileCountPerSide.y)) * this.realTileSize.y, 10);
 
-      this.drawToTexture(renderer, tile, x, y);
+      this.drawToTexture(renderer, this.newPages[page], x, y);
 
+    }
+    this.newPages = {};
+  }
+
+
+
+  cachePage (tile, forced) {
+    try {
+      const page = this.writeToCache(tile.id, forced);
+      this.newPages[page] = tile;
       return page;
     } catch (e) {
       console.log(e.stack);
