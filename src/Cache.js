@@ -1,6 +1,7 @@
 import { Page } from './Page.js';
 import { PageId } from './PageId.js';
 import { Tile } from './Tile.js';
+import * as THREE from '../examples/jsm/three.module.js';
 
 export const StatusNotAvailable = 0;
 export const StatusAvailable = 1;
@@ -65,7 +66,7 @@ export class Cache {
           this.height,
           THREE.RGBAFormat,
           THREE.UnsignedByteType,
-          new THREE.UVMapping(),
+          THREE.UVMapping,
           THREE.ClampToEdgeWrapping,
           THREE.ClampToEdgeWrapping,
           THREE.LinearFilter,
@@ -280,8 +281,9 @@ export class Cache {
 
   drawToTexture (renderer, tile, x, y) {
 
-    var gl = renderer.context;
-    gl.bindTexture(gl.TEXTURE_2D, this.textures.tDiffuse.__webglTexture);
+    var gl = renderer.getContext();
+    var properties = renderer.properties.get(this.textures.tDiffuse);
+    gl.bindTexture(gl.TEXTURE_2D, properties.__webglTexture);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, gl.RGBA, gl.UNSIGNED_BYTE, tile.image);
 
   }

@@ -1,9 +1,12 @@
+
+import * as THREE from '../examples/jsm/three.module.js';
+
 const uniforms = {
-  "vCachePageSize" : { type: "v2", value: null },
-  "vCacheSize" : { type: "v2", value: null },
-  "vTextureSize" : { type: "v2", value : null },
-  "fMaxMipMapLevel" : { type: "f", value: 0.0 },
-  "tCacheIndirection" : {type: "t", value: null},
+  "vCachePageSize" : { value: [0, 0] },
+  "vCacheSize" : { value: [0, 0] },
+  "vTextureSize" : { value : [0, 0] },
+  "fMaxMipMapLevel" : { value: 0.0 },
+  "tCacheIndirection" : { value: null },
 };
 
 const pars_fragment = [
@@ -14,7 +17,6 @@ const pars_fragment = [
   "uniform float fMaxMipMapLevel;",
 
   "vec2 computeUvCoords( vec2 vUv ) {",
-    "vec2 UvCoords;",
     "vec3 pageData = texture2D( tCacheIndirection, vUv ).xyz;",
     "float mipExp = exp2(pageData.z);",
     "vec2 inPageOffset = fract(vUv * mipExp) * (vCachePageSize);",

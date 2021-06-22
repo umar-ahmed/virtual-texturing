@@ -1,6 +1,6 @@
 export const RenderWithVtShader = {
   uniforms: {
-      "tDiffuse"     : { type: "t", value: null },
+      "tDiffuse"     : { value: null },
     },
 
   fragmentShader: [
@@ -9,9 +9,13 @@ export const RenderWithVtShader = {
     "void main() ",
     "{",
       "vec2 uv = computeUvCoords( vUv );",
-      "gl_FragColor = texture2D(tDiffuse, uv);",
+      "gl_FragColor = texture2D(tDiffuse, vUv);",
       //"gl_FragColor = texture2D(tDiffuse, vUv);",
-      //"gl_FragColor.xy = uv;",
+      //"gl_FragColor = texture2D(tCacheIndirection, vUv)*30.;",
+      //"gl_FragColor.a = 1.;",
+      //"gl_FragColor.rg = vUv;",
+      //"gl_FragColor.xy = vUv;",
+      //"gl_FragColor.ba = vec2(0.,1.);",
     "}"
 
   ].join("\n"), // end of fragment shader

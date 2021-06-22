@@ -14,13 +14,9 @@
       </div>
     </div>
 
-    <script type="text/javascript" src="examples/js/Detector.js"></script>
-    <script type="text/javascript" src="examples/js/three.js"></script>
-    <script type="text/javascript" src="examples/js/Clock.js"></script>
-    <script type="text/javascript" src="examples/js/FirstPersonControls.js"></script>
-
     <script type="module">
       import { APP } from './examples/js/Main.js';
+      import { PlaneGeometry } from './examples/jsm/three.module.js';
 
       const app = new APP();
 
@@ -41,7 +37,7 @@
         }
       };
 
-      var geometry = new THREE.PlaneGeometry(100, 100, 100);
+      var geometry = new PlaneGeometry(100, 100, 100);
 
       app.load(geometry, config);
 

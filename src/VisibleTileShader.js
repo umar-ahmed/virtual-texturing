@@ -1,9 +1,11 @@
 
+import * as THREE from '../examples/jsm/three.module.js';
+
 const uniforms = {
-  "fVirtualTextureSize":  { type: "v2", value: null },
-  "fMaximumMipMapLevel":  { type: "f", value: 0.0 },
-  "fTileCount":        { type: "v2", value: null },
-  "fVirtualTextureId": { type: "f", value: 255.0 }
+  "fVirtualTextureSize":  { value: [ 0, 0 ] },
+  "fMaximumMipMapLevel":  {  value: 0.0 },
+  "fTileCount":        { value: [ 0, 0 ] },
+  "fVirtualTextureId": { value: 255.0 }
 };
 
 const pars_vertex = [
@@ -17,13 +19,13 @@ const vertex = [
 ].join("\n");
 
 const pars_fragment = [
-  "#extension GL_OES_standard_derivatives : enable",
-  "#extension GL_OES_texture_float_linear : enable",
+//  "#extension GL_OES_standard_derivatives : enable",
+//  "#extension GL_OES_texture_float_linear : enable",
 
   "uniform vec2 fVirtualTextureSize;",
   "uniform float fMaximumMipMapLevel;",
   "uniform float fVirtualTextureId;",
-  "uniform vec2 fTileCount;",
+  "uniform float fTileCount;",
 
   "varying vec2 vUv;",
 

@@ -9,6 +9,7 @@
  * level n-th has only 1 entry
 */
 import { NodeTree } from './NodeTree.js';
+import * as THREE from '../examples/jsm/three.module.js';
 
 export class IndirectionTable {
   constructor(size) {
@@ -73,7 +74,7 @@ export class IndirectionTable {
       size, //height
       THREE.RGBAFormat,
       THREE.FloatType,
-      new THREE.UVMapping(),
+      THREE.UVMapping,
       THREE.ClampToEdgeWrapping,
       THREE.ClampToEdgeWrapping,
       THREE.NearestFilter,
@@ -199,11 +200,11 @@ export class IndirectionTable {
 
     function writeToTexture(renderer) {
       // update indirection texture on GPU memory
-      if (scope.texture.__webglTexture) {
-        var gl = renderer.context;
-        gl.bindTexture(gl.TEXTURE_2D, scope.texture.__webglTexture);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, scope.size, scope.size, gl.RGBA, gl.FLOAT, scope.dataArray);
-      }
+      var gl = renderer.getContext();
+      var properties = renderer.properties.get(scope.texture);
+      gl.bindTexture(gl.TEXTURE_2D, properties.__webglTexture);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, scope.size, scope.size, gl.RGBA, gl.FLOAT, scope.dataArray);
+
     }
 
     function setUpdate(_x, _y, _level, _handle, _mipMapLevel) {

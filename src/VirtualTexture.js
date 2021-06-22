@@ -11,16 +11,13 @@
  import { Tile } from './Tile.js';
  import { VisibleTileShader } from './VisibleTileShader.js';
  import { VirtualTextureShader } from './VirtualTextureShader.js';
+ import * as THREE from '../examples/jsm/three.module.js';
 
 export function duplicateGeometryForVirtualTexturing (geometry, virtualTexture) {
 
     const uniforms = THREE.UniformsUtils.clone( VisibleTileShader.uniforms );
 
-    uniforms.fVirtualTextureSize.value = {
-      x: virtualTexture.size,
-      y: virtualTexture.size
-    };
-
+    uniforms.fVirtualTextureSize.value = [ virtualTexture.size, virtualTexture.size ];
     uniforms.fMaximumMipMapLevel.value = virtualTexture.maxMipMapLevel;
     uniforms.fTileCount.value = virtualTexture.tileCount;
 
@@ -31,6 +28,7 @@ export function duplicateGeometryForVirtualTexturing (geometry, virtualTexture) 
       side: THREE.DoubleSide
     };
 
+                console.log(parameters);
     const materialVT = new THREE.ShaderMaterial(parameters);
     const meshVT = new THREE.Mesh(geometry, materialVT);
 
@@ -40,18 +38,17 @@ export function duplicateGeometryForVirtualTexturing (geometry, virtualTexture) 
 export function createVirtualTextureMaterial ( virtualTexture, shader ) {
     const uniforms = THREE.UniformsUtils.merge( [
        VirtualTextureShader.uniforms,
-       THREE.UniformsLib.lights,
        shader.uniforms ] );
 
-    const pageSizeInTextureSpaceXY = {
-      x: virtualTexture.cache.usablePageSize / virtualTexture.cache.size.x,
-      y: virtualTexture.cache.usablePageSize / virtualTexture.cache.size.y
-    };
+    const pageSizeInTextureSpaceXY = [
+      virtualTexture.cache.usablePageSize / virtualTexture.cache.size.x,
+      virtualTexture.cache.usablePageSize / virtualTexture.cache.size.y
+    ];
 
     // init values
     uniforms.tCacheIndirection.value = virtualTexture.indirectionTable.texture;
     uniforms.vCachePageSize.value = pageSizeInTextureSpaceXY;
-    uniforms.vCacheSize.value = { x: virtualTexture.cache.width, y: virtualTexture.cache.height };
+    uniforms.vCacheSize.value = [ virtualTexture.cache.width, virtualTexture.cache.height ];
     uniforms.vTextureSize.value = virtualTexture.size;
     uniforms.fMaxMipMapLevel.value = virtualTexture.maxMipMapLevel;
 
@@ -62,9 +59,9 @@ export function createVirtualTextureMaterial ( virtualTexture, shader ) {
       fragmentShader: VirtualTextureShader.pars_fragment + shader.fragmentShader,
       vertexShader: shader.vertexShader,
       side: THREE.DoubleSide,
-      lights: true
     };
 
+            console.log(parameters);
     return new THREE.ShaderMaterial(parameters);
   };
 
@@ -94,14 +91,10 @@ export class VirtualTexture {
 
     console.log('Virtual Texture: width: ' + this.size + ' height: ' + this.size);
 
-    this.tileCount = {
-      x: this.size / this.tileSize,
-      y: this.size / this.tileSize
-    };
+    this.tileCount = this.size / this.tileSize;
 
     // init tile determination program
     this.tileDetermination = new TileDetermination();
-    this.tileDetermination.scene.add();
 
     // init page table
     var cacheSize = this.size / this.tileSize;
@@ -144,7 +137,7 @@ export class VirtualTexture {
       scope.needsUpdate = true;
       //++erasedCount;
     };
-    
+
     this.needsUpdate = false;
 
     this.init();

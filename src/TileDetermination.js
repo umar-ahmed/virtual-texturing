@@ -1,6 +1,7 @@
 //
 //
 //
+import * as THREE from '../examples/jsm/three.module.js';
 
 export class TileDetermination {
   constructor() {
@@ -25,7 +26,7 @@ export class TileDetermination {
 
     } else if ( width != this.renderTarget.width ||  height != this.renderTarget.height ) {
 
-      // this.renderTarget.setSize(width, height); TODO after THREE upgrade
+      this.renderTarget.setSize(width, height);
 
     } else {
 
@@ -92,7 +93,7 @@ export class TileDetermination {
 
   parse(sparseTable) {
     let i, r, g, b;
-    const numPixels = 4 * this.renderTarget.width * this.renderTarget.height;
+    const numPixels = this.data.length;
 
     for (i = 0; i < numPixels; i += 4) {
 
@@ -108,7 +109,7 @@ export class TileDetermination {
 
   parseImage (renderer, sparseTable) {
     // copy render buffer to this.data
-    var gl = renderer.context;
+    var gl = renderer.getContext();
     gl.pixelStorei(gl.PACK_ALIGNMENT, 4);
     gl.readPixels(0, 0, this.renderTarget.width, this.renderTarget.height, gl.RGBA, gl.UNSIGNED_BYTE, this.data);
 
