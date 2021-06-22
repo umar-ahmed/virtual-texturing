@@ -3,33 +3,34 @@
 //
 
 export class TileQueue {
-  constructor(size, locations) {
-    this.maxLoading = size;
+  constructor(maxLoading, locations) {
+    this.maxLoading = maxLoading;
     this.onLoading = 0;
     this.loadCount = 0;
 
     this.locations = locations;
     this.callback = null;
 
-    this.content = [];
+    this.tiles = [];
     this.sorted = false;
   }
 
-  push(item) {
-    this.content.push({object: item, priority: item.hits});
-    this.sorted = false;
+  push(tile) {
 
+    this.tiles.push(tile);
+    this.sorted = false;
     this.process();
+
   }
 
   process() {
 
     if ((this.onLoading < this.maxLoading) && !this.empty()) {
-      var scope = this;
-      var item = this.pop();
-      var filePath = this.getTilePath(item);
+      const scope = this;
+      const tile = this.pop();
+      const filePath = this.getTilePath(tile);
 
-      var image = new Image();
+      const image = new Image();
       image.crossOrigin = 'Anonymous';
 
       this.onLoading++;
@@ -39,13 +40,13 @@ export class TileQueue {
         --scope.onLoading;
         ++scope.loadCount;
 
-        item.image = this;
-        item.loaded = true;
+        tile.image = this;
+        tile.loaded = true;
 
-        console.log('Tile ' + item.pageNumber + ' at level ' + item.mipMapLevel + ' loaded | Count: ' + scope.loadCount );
+        console.log('Tile ' + tile.pageNumber + ' at level ' + tile.mipMapLevel + ' loaded | Count: ' + scope.loadCount );
 
         scope.process();
-        scope.callback(item);
+        if (scope.callback) scope.callback(tile);
       };
 
       image.src = filePath;
@@ -55,18 +56,17 @@ export class TileQueue {
   pop() {
 
     this.sort();
-    var element = this.content.pop();
-    return element ? element.object : undefined;
+    return this.tiles.pop();
 
   }
 
   empty() {
-    return 0 === this.content.length;
+    return 0 === this.tiles.length;
   }
 
   contains(id) {
-    for (let i = this.content.length - 1; i >= 0; --i) {
-      if (id === this.content[i].object.id) {
+    for (let i = this.tiles.length - 1; i >= 0; --i) {
+      if (id === this.tiles[i].id) {
         return true;
       }
     }
@@ -74,20 +74,19 @@ export class TileQueue {
   }
 
   size() {
-    return this.content.length;
+    return this.tiles.length;
   }
 
   top() {
 
     this.sort();
-    const element = this.content[this.content.length - 1];
-    return element ? element.object : undefined;
+    return this.tiles[this.tiles.length - 1];
 
   }
 
   sort() {
     if ( this.sorted ) return;
-    this.content.sort((a, b) => a.priority - b.priority);
+    this.tiles.sort((a, b) => a.hits - b.hits);
     this.sorted = true;
   }
 };
