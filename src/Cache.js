@@ -1,7 +1,8 @@
 import { Page } from './Page.js';
 import { PageId } from './PageId.js';
 import { Tile } from './Tile.js';
-import * as THREE from '../examples/jsm/three.module.js';
+import { DataTexture, RGBAFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, LinearFilter, Vector2 }
+from '../examples/jsm/three.module.js';
 
 export const StatusNotAvailable = 0;
 export const StatusAvailable = 1;
@@ -60,17 +61,17 @@ export class Cache {
 
     for (type in this.textures) {
       if (this.textures.hasOwnProperty(type)) {
-        texture = new THREE.DataTexture(
+        texture = new DataTexture(
           null,
           this.width,
           this.height,
-          THREE.RGBAFormat,
-          THREE.UnsignedByteType,
-          THREE.UVMapping,
-          THREE.ClampToEdgeWrapping,
-          THREE.ClampToEdgeWrapping,
-          THREE.LinearFilter,
-          THREE.LinearFilter
+          RGBAFormat,
+          UnsignedByteType,
+          UVMapping,
+          ClampToEdgeWrapping,
+          ClampToEdgeWrapping,
+          LinearFilter,
+          LinearFilter
         );
 
         texture.generateMipmaps = false;
@@ -281,7 +282,7 @@ export class Cache {
   }
 
   drawToTexture (renderer, tile, x, y) {
-    const pos = new THREE.Vector3().set(x, y);
+    const pos = new Vector2().set(x, y);
     renderer.copyTextureToTexture(pos, tile, this.textures.tDiffuse);
   }
 

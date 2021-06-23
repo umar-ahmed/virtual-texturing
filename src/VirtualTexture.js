@@ -11,11 +11,11 @@
  import { Tile } from './Tile.js';
  import { VisibleTileShader } from './VisibleTileShader.js';
  import { VirtualTextureShader } from './VirtualTextureShader.js';
- import * as THREE from '../examples/jsm/three.module.js';
+ import { UniformsUtils, DoubleSide, ShaderMaterial, Mesh } from '../examples/jsm/three.module.js';
 
 export function duplicateGeometryForVirtualTexturing (geometry, virtualTexture) {
 
-    const uniforms = THREE.UniformsUtils.clone( VisibleTileShader.uniforms );
+    const uniforms = UniformsUtils.clone( VisibleTileShader.uniforms );
 
     uniforms.fVirtualTextureSize.value = [ virtualTexture.size, virtualTexture.size ];
     uniforms.fMaximumMipMapLevel.value = virtualTexture.maxMipMapLevel;
@@ -25,17 +25,17 @@ export function duplicateGeometryForVirtualTexturing (geometry, virtualTexture) 
       uniforms: uniforms,
       fragmentShader: VisibleTileShader.fragmentShader,
       vertexShader: VisibleTileShader.vertexShader,
-      side: THREE.DoubleSide
+      side: DoubleSide
     };
 
-    const materialVT = new THREE.ShaderMaterial(parameters);
-    const meshVT = new THREE.Mesh(geometry, materialVT);
+    const materialVT = new ShaderMaterial(parameters);
+    const meshVT = new Mesh(geometry, materialVT);
 
     virtualTexture.tileDetermination.scene.add(meshVT);
   };
 
 export function createVirtualTextureMaterial ( virtualTexture, shader ) {
-    const uniforms = THREE.UniformsUtils.merge( [
+    const uniforms = UniformsUtils.merge( [
        VirtualTextureShader.uniforms,
        shader.uniforms ] );
 
@@ -55,12 +55,12 @@ export function createVirtualTextureMaterial ( virtualTexture, shader ) {
 
     const parameters = {
       uniforms: uniforms,
-      fragmentShader: VirtualTextureShader.pars_fragment + shader.fragmentShader,
+      fragmentShader: shader.fragmentShader,
       vertexShader: shader.vertexShader,
-      side: THREE.DoubleSide,
+      side: DoubleSide,
     };
 
-    return new THREE.ShaderMaterial(parameters);
+    return new ShaderMaterial(parameters);
   };
 
   //

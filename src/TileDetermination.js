@@ -1,11 +1,11 @@
 //
 //
 //
-import * as THREE from '../examples/jsm/three.module.js';
+import { Scene, NearestFilter, RGBAFormat, WebGLRenderTarget } from '../examples/jsm/three.module.js';
 
 export class TileDetermination {
   constructor() {
-    this.scene = new THREE.Scene();
+    this.scene = new Scene();
     this.canvas = null;
     this.renderTarget = null;
     this.data = null;
@@ -16,13 +16,13 @@ export class TileDetermination {
 
     if (!this.renderTarget) {
       var renderTargetParameters = {
-        minFilter: THREE.NearestFilter,
-        magFilter: THREE.NearestFilter,
-        format: THREE.RGBAFormat,
+        minFilter: NearestFilter,
+        magFilter: NearestFilter,
+        format: RGBAFormat,
         stencilBufer: false
       };
 
-      this.renderTarget = new THREE.WebGLRenderTarget( width, height, renderTargetParameters );
+      this.renderTarget = new WebGLRenderTarget( width, height, renderTargetParameters );
 
     } else if ( width != this.renderTarget.width ||  height != this.renderTarget.height ) {
 

@@ -1,5 +1,4 @@
-
-import * as THREE from '../examples/jsm/three.module.js';
+import { UniformsLib, ShaderChunk } from '../examples/jsm/three.module.js';
 
 const uniforms = {
   "vCachePageSize" : { value: [0, 0] },
@@ -25,8 +24,8 @@ const pars_fragment = [
 ].join("\n");
 
 
-THREE.UniformsLib[ "vt" ] = uniforms;
-THREE.ShaderChunk[ "vt_pars_fragment" ] = pars_fragment;
+UniformsLib[ "vt" ] = uniforms;
+ShaderChunk[ "vt/pars_fragment" ] = pars_fragment;
 
 export const VirtualTextureShader = {
   uniforms: uniforms,

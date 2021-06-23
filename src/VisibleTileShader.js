@@ -1,5 +1,4 @@
-
-import * as THREE from '../examples/jsm/three.module.js';
+import { UniformsLib, ShaderChunk } from '../examples/jsm/three.module.js';
 
 const uniforms = {
   "fVirtualTextureSize":  { value: [ 0, 0 ] },
@@ -52,14 +51,14 @@ const fragment = [
 ].join("\n");
 
 
-THREE.UniformsLib[ "vt_visible_tiles" ] = uniforms;
-THREE.ShaderChunk[ "vt_visible_tiles_pars_vertex" ] = pars_vertex;
-THREE.ShaderChunk[ "vt_visible_tiles_pars_fragment" ] = pars_fragment;
-THREE.ShaderChunk[ "vt_visible_tiles_fragment" ] = fragment;
-THREE.ShaderChunk[ "vt_visible_tiles_vertex" ] = vertex;
+UniformsLib[ "vt/visible_tiles" ] = uniforms;
+ShaderChunk[ "vt/visible_tiles/pars_vertex" ] = pars_vertex;
+ShaderChunk[ "vt/visible_tiles/pars_fragment" ] = pars_fragment;
+ShaderChunk[ "vt/visible_tiles/fragment" ] = fragment;
+ShaderChunk[ "vt/visible_tiles/vertex" ] = vertex;
 
 export const VisibleTileShader =  {
-  uniforms: THREE.UniformsUtils.clone( uniforms ),
+  uniforms: uniforms,
   fragmentShader: [ pars_fragment, "void main() {", fragment, "}" ].join("\n"),
   vertexShader: [ pars_vertex, "void main() {", vertex, "}" ].join("\n")
 };

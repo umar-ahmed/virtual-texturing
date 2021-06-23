@@ -4,7 +4,7 @@
 
 import { RenderWithVtShader } from './RenderWithVtShader.js';
 import * as VT from '../../src/VirtualTexture.js';
-import * as THREE from '../jsm/three.module.js';
+import { Clock, WebGLRenderer, Scene, PerspectiveCamera, Mesh } from '../jsm/three.module.js';
 import { FlyControls } from '../jsm/FlyControls.js';
 import { WEBGL } from '../jsm/WebGL.js';
 
@@ -16,7 +16,7 @@ export class APP {
     this.camera = null;
     this.controls = null;
     this.mesh = null;
-    this.clock = new THREE.Clock();
+    this.clock = new Clock();
 
     this.virtualTexture = null;
 
@@ -92,7 +92,7 @@ export class APP {
       var height = window.innerHeight;
       console.log("width:" + width + " height:" + height);
 
-      this.renderer = new THREE.WebGLRenderer();
+      this.renderer = new WebGLRenderer();
       this.renderer.renderCount = 0;
       this.renderer.setSize(width, height);
 
@@ -104,12 +104,12 @@ export class APP {
       this.domContainer.appendChild(this.renderer.domElement);
 
       // create a scene
-      this.scene = new THREE.Scene();
+      this.scene = new Scene();
 
     /**********************************************************************************/
 
       // put a camera in the scene
-      this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
+      this.camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
       this.camera.position.set(0.0, 0.0, 80.0);
 
       this.scene.add(this.camera);
@@ -141,7 +141,7 @@ export class APP {
     this.virtualTexture = new VT.VirtualTexture(config);
 
     var material = VT.createVirtualTextureMaterial(this.virtualTexture, RenderWithVtShader);
-    this.mesh = new THREE.Mesh(geometry, material);
+    this.mesh = new Mesh(geometry, material);
     this.scene.add(this.mesh);
 
     VT.duplicateGeometryForVirtualTexturing(geometry, this.virtualTexture);

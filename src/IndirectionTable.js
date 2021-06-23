@@ -9,7 +9,8 @@
  * level n-th has only 1 entry
 */
 import { NodeTree } from './NodeTree.js';
-import * as THREE from '../examples/jsm/three.module.js';
+import { DataTexture, RGBAFormat, FloatType, UVMapping, ClampToEdgeWrapping, NearestFilter }
+from '../examples/jsm/three.module.js';
 
 export class IndirectionTable {
   constructor(size) {
@@ -68,17 +69,17 @@ export class IndirectionTable {
       this.dataArray[offset + 3] = 255.0;
     }
 
-    this.texture = new THREE.DataTexture(
+    this.texture = new DataTexture(
       this.dataArray,
       size, //width
       size, //height
-      THREE.RGBAFormat,
-      THREE.FloatType,
-      THREE.UVMapping,
-      THREE.ClampToEdgeWrapping,
-      THREE.ClampToEdgeWrapping,
-      THREE.NearestFilter,
-      THREE.NearestFilter
+      RGBAFormat,
+      FloatType,
+      UVMapping,
+      ClampToEdgeWrapping,
+      ClampToEdgeWrapping,
+      NearestFilter,
+      NearestFilter
     );
 
     this.texture.name = 'indirection_table';

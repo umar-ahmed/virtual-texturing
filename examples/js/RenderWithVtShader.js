@@ -4,6 +4,7 @@ export const RenderWithVtShader = {
     },
 
   fragmentShader: [
+    "#include <vt/pars_fragment>",
     "varying vec2 vUv;",
     "uniform sampler2D tDiffuse;",
     "void main() ",
