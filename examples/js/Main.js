@@ -65,7 +65,7 @@ export class APP {
 
   render() {
     if (this.virtualTexture && this.renderer.renderCount > 0) {
-      this.virtualTexture.render(this.renderer, this.camera);
+      this.virtualTexture.update(this.renderer, this.camera);
     }
 
     ++this.renderer.renderCount;

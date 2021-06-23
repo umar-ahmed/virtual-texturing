@@ -91,7 +91,7 @@ export class TileDetermination {
     document.body.appendChild(this.canvas);
   }
 
-  parse(sparseTable) {
+  parseData(sparseTable) {
     let i, r, g, b;
     const numPixels = this.data.length;
 
@@ -105,22 +105,24 @@ export class TileDetermination {
         sparseTable.set(r, g, b);
       }
     }
-  }
-
-  parseImage (renderer, sparseTable) {
-    // copy render buffer to this.data
-    var gl = renderer.getContext();
-    gl.pixelStorei(gl.PACK_ALIGNMENT, 4);
-    gl.readPixels(0, 0, this.renderTarget.width, this.renderTarget.height, gl.RGBA, gl.UNSIGNED_BYTE, this.data);
-
-    // parse uv and page id from render target
-    this.parse(sparseTable);
 
     if (this.canvas) {
       // copy the flipped texture to data
       this.imgData.data.set(this.data);
       this.canvas.getContext('2d').putImageData(this.imgData, 0, 0);
     }
+  }
+
+  // parse render taget pixels (mip map levels and visible tile)
+  update (renderer, camera, sparseTable) {
+
+    renderer.setRenderTarget( this.renderTarget );
+    renderer.render( this.scene, camera );
+    renderer.readRenderTargetPixels( this.renderTarget,
+      0, 0, this.renderTarget.width, this.renderTarget.height, this.data );
+    this.parseData(sparseTable);
+    renderer.setRenderTarget( null );
+
   }
 
 };

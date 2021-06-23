@@ -76,6 +76,7 @@ export class Cache {
         texture.generateMipmaps = false;
         texture.needsUpdate = true;
         this.textures[type] = texture;
+        texture.name = type;
       }
     }
   }
@@ -280,12 +281,8 @@ export class Cache {
   }
 
   drawToTexture (renderer, tile, x, y) {
-
-    var gl = renderer.getContext();
-    var properties = renderer.properties.get(this.textures.tDiffuse);
-    gl.bindTexture(gl.TEXTURE_2D, properties.__webglTexture);
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, gl.RGBA, gl.UNSIGNED_BYTE, tile.image);
-
+    const pos = new THREE.Vector3().set(x, y);
+    renderer.copyTextureToTexture(pos, tile, this.textures.tDiffuse);
   }
 
   writeToCache (id, forced) {

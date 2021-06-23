@@ -81,6 +81,7 @@ export class IndirectionTable {
       THREE.NearestFilter
     );
 
+    this.texture.name = 'indirection_table';
     this.texture.generateMipmaps = false;
     this.texture.needsUpdate = true;
   }
@@ -158,7 +159,7 @@ export class IndirectionTable {
     }
   }
 
-  update (renderer, cache) {
+  update (cache) {
 
     var i, x, y, root, height, width, scope, lowerX, lowerY, idx, node, mipMapLevel;
 
@@ -193,18 +194,11 @@ export class IndirectionTable {
     }
 
     function writeToCanvas() {
-      var _x = 0;
-      var _y = 0;
-      scope.canvas.getContext('2d').putImageData(scope.imageData, _x, _y);
+      scope.canvas.getContext('2d').putImageData(scope.imageData, 0, 0);
     }
 
-    function writeToTexture(renderer) {
-      // update indirection texture on GPU memory
-      var gl = renderer.getContext();
-      var properties = renderer.properties.get(scope.texture);
-      gl.bindTexture(gl.TEXTURE_2D, properties.__webglTexture);
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, scope.size, scope.size, gl.RGBA, gl.FLOAT, scope.dataArray);
-
+    function writeToTexture() {
+      scope.texture.needsUpdate = true;
     }
 
     function setUpdate(_x, _y, _level, _handle, _mipMapLevel) {
@@ -270,7 +264,7 @@ export class IndirectionTable {
 
     setData(0);
     writeToCanvas();
-    writeToTexture(renderer);
+    writeToTexture();
 
   }
 

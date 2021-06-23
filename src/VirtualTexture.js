@@ -28,7 +28,6 @@ export function duplicateGeometryForVirtualTexturing (geometry, virtualTexture) 
       side: THREE.DoubleSide
     };
 
-                console.log(parameters);
     const materialVT = new THREE.ShaderMaterial(parameters);
     const meshVT = new THREE.Mesh(geometry, materialVT);
 
@@ -61,7 +60,6 @@ export function createVirtualTextureMaterial ( virtualTexture, shader ) {
       side: THREE.DoubleSide,
     };
 
-            console.log(parameters);
     return new THREE.ShaderMaterial(parameters);
   };
 
@@ -154,13 +152,6 @@ export class VirtualTexture {
 
   }
 
-  render(renderer, camera) {
-
-      renderer.render(this.tileDetermination.scene, camera, this.tileDetermination.renderTarget, false);
-
-      this.update(renderer);
-    }
-
     init() {
       this.resetCache();
 
@@ -177,13 +168,10 @@ export class VirtualTexture {
       this.tileQueue.push(tile);
     }
 
-    update (renderer) {
+    update (renderer, camera) {
       //if(!this.needsUpdate) return;
+      this.tileDetermination.update(renderer, camera, this.usageTable);
 
-      // parse render taget pixels (mip map levels and visible tile)
-      this.tileDetermination.parseImage(renderer, this.usageTable);
-
-      //console.log(this.cache)
       var element, level, isUsed;
       var releasedPagesCount = 0;
       var restoredPagesCount = 0;
@@ -289,8 +277,8 @@ export class VirtualTexture {
             "\nFree:\t\t"   + cacheStatusData.free +
             "\nMarkedFree:\t"   + cacheStatusData.markedFree);*/
 
-      this.cache.update(renderer);
-      this.indirectionTable.update(renderer, this.cache);
+      this.cache.update( renderer );
+      this.indirectionTable.update( this.cache );
       this.usageTable.clear();
     }
   };

@@ -9,7 +9,7 @@ export const RenderWithVtShader = {
     "void main() ",
     "{",
       "vec2 uv = computeUvCoords( vUv );",
-      "gl_FragColor = texture2D(tDiffuse, vUv);",
+      "gl_FragColor = texture2D(tDiffuse, uv);",
       //"gl_FragColor = texture2D(tDiffuse, vUv);",
       //"gl_FragColor = texture2D(tCacheIndirection, vUv)*30.;",
       //"gl_FragColor.a = 1.;",

@@ -14,13 +14,11 @@ const pars_vertex = [
 
 const vertex = [
   "vec4 mvPosition = (modelViewMatrix * vec4( position, 1.0 ));",
-  "vUv = vec2(uv.x, 1.0 - uv.y);",
+  "vUv = uv;",
   "gl_Position = projectionMatrix * mvPosition;"
 ].join("\n");
 
 const pars_fragment = [
-//  "#extension GL_OES_standard_derivatives : enable",
-//  "#extension GL_OES_texture_float_linear : enable",
 
   "uniform vec2 fVirtualTextureSize;",
   "uniform float fMaximumMipMapLevel;",
