@@ -13,60 +13,6 @@
  import { VirtualTextureShader } from './VirtualTextureShader.js';
  import { UniformsUtils, DoubleSide, ShaderMaterial, Mesh } from '../examples/jsm/three.module.js';
 
-export function duplicateGeometryForVirtualTexturing (geometry, virtualTexture) {
-
-    const uniforms = UniformsUtils.clone( VisibleTileShader.uniforms );
-
-    uniforms.fVirtualTextureSize.value = [ virtualTexture.size, virtualTexture.size ];
-    uniforms.fMaximumMipMapLevel.value = virtualTexture.maxMipMapLevel;
-    uniforms.fTileCount.value = virtualTexture.tileCount;
-
-    const parameters = {
-      uniforms: uniforms,
-      fragmentShader: VisibleTileShader.fragmentShader,
-      vertexShader: VisibleTileShader.vertexShader,
-      side: DoubleSide
-    };
-
-    const materialVT = new ShaderMaterial(parameters);
-    const meshVT = new Mesh(geometry, materialVT);
-
-    virtualTexture.tileDetermination.scene.add(meshVT);
-  };
-
-export function createVirtualTextureMaterial ( virtualTexture, shader ) {
-    const uniforms = UniformsUtils.merge( [
-       VirtualTextureShader.uniforms,
-       shader.uniforms ] );
-
-    const pageSizeInTextureSpaceXY = [
-      virtualTexture.cache.usablePageSize / virtualTexture.cache.size.x,
-      virtualTexture.cache.usablePageSize / virtualTexture.cache.size.y
-    ];
-
-    // init values
-    uniforms.tCacheIndirection.value = virtualTexture.indirectionTable.texture;
-    uniforms.vCachePageSize.value = pageSizeInTextureSpaceXY;
-    uniforms.vCacheSize.value = [ virtualTexture.cache.width, virtualTexture.cache.height ];
-    uniforms.vTextureSize.value = virtualTexture.size;
-    uniforms.fMaxMipMapLevel.value = virtualTexture.maxMipMapLevel;
-
-    uniforms.tDiffuse.value = virtualTexture.cache.textures.tDiffuse;
-
-    const parameters = {
-      uniforms: uniforms,
-      fragmentShader: shader.fragmentShader,
-      vertexShader: shader.vertexShader,
-      side: DoubleSide,
-    };
-
-    return new ShaderMaterial(parameters);
-  };
-
-  //
-  //
-  //
-
 export class VirtualTexture {
   constructor( params ) {
     if (!params) {
@@ -281,4 +227,51 @@ export class VirtualTexture {
       this.indirectionTable.update( this.cache );
       this.usageTable.clear();
     }
-  };
+
+    addGeometry ( geometry ) {
+
+      const uniforms = UniformsUtils.clone( VisibleTileShader.uniforms );
+
+      uniforms.fVirtualTextureSize.value = [ this.size, this.size ];
+      uniforms.fMaximumMipMapLevel.value = this.maxMipMapLevel;
+      uniforms.fTileCount.value = this.tileCount;
+
+      const parameters = {
+        uniforms: uniforms,
+        fragmentShader: VisibleTileShader.fragmentShader,
+        vertexShader: VisibleTileShader.vertexShader,
+        side: DoubleSide
+      };
+
+      const materialVT = new ShaderMaterial(parameters);
+      const meshVT = new Mesh(geometry, materialVT);
+
+      this.tileDetermination.scene.add(meshVT);
+    };
+
+    createMaterial ( parameters ) {
+
+      const material = new ShaderMaterial( parameters );
+      const uniforms = VirtualTextureShader.uniforms;
+      material.uniforms = UniformsUtils.merge( [ uniforms, material.uniforms ] ),
+      this.updateUniforms( material );
+      return material;
+
+    };
+
+    updateUniforms ( material ) {
+
+      const uniforms = material.uniforms;
+      const pageSizeInTextureSpaceXY = [
+        this.cache.usablePageSize / this.cache.size.x,
+        this.cache.usablePageSize / this.cache.size.y
+      ];
+      uniforms.tCacheIndirection.value = this.indirectionTable.texture;
+      uniforms.vCachePageSize.value = pageSizeInTextureSpaceXY;
+      uniforms.vCacheSize.value = [ this.cache.width, this.cache.height ];
+      uniforms.vTextureSize.value = this.size;
+      uniforms.fMaxMipMapLevel.value = this.maxMipMapLevel;
+      uniforms.tDiffuse.value = this.cache.textures.tDiffuse;
+
+    };
+};
