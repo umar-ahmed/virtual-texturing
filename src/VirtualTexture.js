@@ -67,7 +67,7 @@ export class VirtualTexture {
     this.tileQueue.callback = function (tile) {
       var status = scope.cache.getPageStatus(tile.id); // was parentId... not sure why
       if (status !== StatusAvailable) {
-        var slot = scope.cache.cacheTile(tile, false);
+        var slot = scope.cache.cacheTile(tile, tile.id == 0);
         scope.indirectionTable.setValueAt(tile.pageX, tile.pageY, tile.pageZ, slot);
       }
       scope.needsUpdate = true;

@@ -178,7 +178,7 @@ export class Cache {
     return this.freeSlots.includes(true);
   }
 
-  writeToCache (id, forced) {
+  getSlot (id) {
     // try to restore
     let slot = this.restorePage(id);
     if (slot >= 0) {
@@ -198,7 +198,6 @@ export class Cache {
     }
 
     // update slot
-    page.forced = forced;
     page.z = PageId.getPageZ(id);
     page.pageId = id;
     page.valid = true;
@@ -221,8 +220,9 @@ export class Cache {
 
   cacheTile (tile, forced) {
     try {
-      const slot = this.writeToCache(tile.id, forced);
+      const slot = this.getSlot(tile.id);
       this.newTiles[slot] = tile;
+      this.pages[slot].forced = forced;
       return slot;
     } catch (e) {
       console.log(e.stack);
