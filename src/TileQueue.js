@@ -3,12 +3,11 @@
 //
 
 export class TileQueue {
-  constructor(maxLoading, locations) {
+  constructor(maxLoading) {
     this.maxLoading = maxLoading;
     this.onLoading = 0;
     this.loadCount = 0;
 
-    this.locations = locations;
     this.callback = null;
 
     this.tiles = [];
@@ -43,7 +42,7 @@ export class TileQueue {
         tile.image = this;
         tile.loaded = true;
 
-        console.log('Tile ' + tile.pageNumber + ' at level ' + tile.mipMapLevel + ' loaded | Count: ' + scope.loadCount );
+        console.log('Tile ' + tile.pageX + ',' + tile.pageY + '@' + tile.pageZ + ' loaded | Count: ' + scope.loadCount );
 
         scope.process();
         if (scope.callback) scope.callback(tile);
@@ -65,12 +64,7 @@ export class TileQueue {
   }
 
   contains(id) {
-    for (let i = this.tiles.length - 1; i >= 0; --i) {
-      if (id === this.tiles[i].id) {
-        return true;
-      }
-    }
-    return false;
+    return this.tiles.findIndex(tile => id === tile.id) != -1;
   }
 
   size() {

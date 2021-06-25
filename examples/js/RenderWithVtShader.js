@@ -1,22 +1,20 @@
 export const RenderWithVtShader = {
   uniforms: {
-      "tDiffuse"     : { value: null },
-    },
-
+    "tDiffuse"     : { value: null },
+    "bDebugLevel"     : { value: false },
+    "bDebugCache"     : { value: false },
+  },
   fragmentShader: [
     "#include <vt/pars_fragment>",
     "varying vec2 vUv;",
     "uniform sampler2D tDiffuse;",
+    "uniform bool bDebugLevel;",
+    "uniform bool bDebugCache;",
     "void main() ",
     "{",
-      "vec2 uv = computeUvCoords( vUv );",
-      "gl_FragColor = texture2D(tDiffuse, uv);",
-      //"gl_FragColor = texture2D(tDiffuse, vUv);",
-      //"gl_FragColor = texture2D(tCacheIndirection, vUv)*30.;",
-      //"gl_FragColor.a = 1.;",
-      //"gl_FragColor.rg = vUv;",
-      //"gl_FragColor.xy = vUv;",
-      //"gl_FragColor.ba = vec2(0.,1.);",
+      "vec3 uv = computeUvCoords( vUv );",
+      "gl_FragColor = textureLod(tDiffuse, bDebugCache ? vUv : uv.xy, 0.);",
+      "if (bDebugLevel) gl_FragColor.r = uv.z / fMaxMipMapLevel;",
     "}"
 
   ].join("\n"), // end of fragment shader
@@ -25,7 +23,7 @@ export const RenderWithVtShader = {
     "varying vec2 vUv;",
     "void main() {",
       "vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );",
-      "vUv = uv;",
+      "vUv = vec2(uv.x, 1. - uv.y);",
       "gl_Position = projectionMatrix * mvPosition;",
     "}"
 

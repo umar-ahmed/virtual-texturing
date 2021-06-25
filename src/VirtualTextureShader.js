@@ -1,25 +1,29 @@
 import { UniformsLib, ShaderChunk } from '../examples/jsm/three.module.js';
 
 const uniforms = {
-  "vCachePageSize" : { value: [0, 0] },
-  "vCacheSize" : { value: [0, 0] },
-  "vTextureSize" : { value : [0, 0] },
+  "vPadding" : { value: [0, 0] },
+  "vClamping" : { value: [0, 0] },
+  "vNumTiles" : { value : [0, 0] },
   "fMaxMipMapLevel" : { value: 0.0 },
   "tCacheIndirection" : { value: null },
 };
 
 const pars_fragment = [
-  "uniform sampler2D tCacheIndirection;",
-  "uniform vec2 vCachePageSize;",
-  "uniform vec2 vCacheSize;",
-  "uniform vec2 vTextureSize;",
+  "precision highp usampler2D;",
+  "uniform usampler2D tCacheIndirection;",
+  "uniform vec2 vPadding;",
+  "uniform vec2 vClamping;",
+  "uniform vec2 vNumTiles;",
   "uniform float fMaxMipMapLevel;",
 
-  "vec2 computeUvCoords( vec2 vUv ) {",
-    "vec3 pageData = texture2D( tCacheIndirection, vUv ).xyz;",
-    "float mipExp = exp2(pageData.z);",
-    "vec2 inPageOffset = fract(vUv * mipExp) * (vCachePageSize);",
-    "return pageData.xy + inPageOffset;",
+  "vec3 computeUvCoords( vec2 vUv ) {",
+    "vec3 uvl = vec3(texture2D( tCacheIndirection, vUv ).xyz);",
+    "float l = exp2(uvl.z);",
+    "vec2 inPageUv = fract(vUv * l);",
+    "inPageUv = vPadding + inPageUv * (1.-2.*vPadding);",
+    "inPageUv = clamp(inPageUv, vClamping, 1.-vClamping);",
+    "uvl.xy = (uvl.xy + inPageUv) / vNumTiles;",
+    "return uvl;",
   "}"
 ].join("\n");
 

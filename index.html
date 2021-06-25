@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <title>Virtual Textures | Example</title>
@@ -22,24 +23,42 @@
 
       app.start();
 
-      var config = {
-        enabled: true,
-        maxMipMapLevel: 4,
-        tileSize: 128,
-        tilePadding: 4,
-        cacheSize: 2048,
-        ratio: 0.125,
-        getTilePath: function(tile) {
-          var directory = '/examples/models/terrain/tiles/diffuse/';
-          var filename = (4 - tile.mipMapLevel) + '-' + tile.pageNumber + ".jpg";
-
-          return directory + filename;
+      var config = [
+        {
+          maxMipMapLevel: 4,
+          tileSize: 128,
+          tilePadding: 4,
+          tileClamp: 0.5,
+          cacheSize: 600,
+          ratio: 0.125,
+          getTilePath: function(tile) {
+            const directory = '/examples/models/terrain/tiles/diffuse/';
+            const level = tile.pageZ;
+            const pageNumber = tile.pageX + tile.pageY * ( 1 << level );
+            const filename = level + '-' + pageNumber + ".jpg";
+            return directory + filename;
+          }
+        },
+        {
+          maxMipMapLevel: 8,
+          tileSize: 256,
+          tilePadding: 0,
+          tileClamp: 0.5,
+          cacheSize: 4000,//600,
+          ratio: 0.125,
+          getTilePath: function(tile) {
+            let url = 'https://wxs.ign.fr/3ht7xcw6f7nciopo16etuqp2/geoportail/wmts?LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={Z}&TILEROW={Y}&TILECOL={X}';
+            url = url.replace('{X}', tile.pageX);
+            url = url.replace('{Y}', tile.pageY);
+            url = url.replace('{Z}', tile.pageZ);
+            return url;
+          }
         }
-      };
+      ];
 
       var geometry = new PlaneGeometry(100, 100, 100);
 
-      app.load(geometry, config);
+      app.load(geometry, config[1]);
 
       app.run();
 

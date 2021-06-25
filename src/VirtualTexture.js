@@ -25,6 +25,7 @@ export class VirtualTexture {
     this.tilePadding = params.tilePadding;
     this.cacheSize = params.cacheSize;
     this.ratio = params.ratio;
+    this.useProgressiveLoading = true;
 
     // init tile queue
     this.tileQueue = new TileQueue(2);
@@ -54,38 +55,28 @@ export class VirtualTexture {
     );
 
     var scope = this;
-    this.cache.pageDroppedCallback = function (page, mipLevel) {
-      var handle = scope.indirectionTable.getElementAt(page, mipLevel).value;
-      scope.indirectionTable.set(page, mipLevel, -1);
-      scope.indirectionTable.setChildren(page, mipLevel, -1, handle);
+    this.cache.pageDroppedCallback = function (pageX, pageY, pageZ) {
+      var value = scope.indirectionTable.getValueAt(pageX, pageY, pageZ);
+      scope.indirectionTable.setValueAt(pageX, pageY, pageZ, -1);
+      scope.indirectionTable.setChildren(pageX, pageY, pageZ, -1, value);
     };
 
     // init usage table
     this.usageTable = new UsageTable(this.indirectionTable.size);
 
     this.tileQueue.callback = function (tile) {
-
-      var status = scope.cache.getPageStatus(tile.parentId);
-      var tileAlreadyOnCache = (StatusAvailable === status);
-
-      if (!tileAlreadyOnCache) {
-
-        var handle = scope.cache.cachePage(tile, false);
-        var pageNumber = PageId.getPageNumber(tile.id);
-        var mipMapLevel = PageId.getMipMapLevel(tile.id);
-
-        scope.indirectionTable.set(pageNumber, mipMapLevel, handle);
-        //++boundPages;
+      var status = scope.cache.getPageStatus(tile.id); // was parentId... not sure why
+      if (status !== StatusAvailable) {
+        var slot = scope.cache.cacheTile(tile, false);
+        scope.indirectionTable.setValueAt(tile.pageX, tile.pageY, tile.pageZ, slot);
       }
-
       scope.needsUpdate = true;
-      //++erasedCount;
     };
 
     this.needsUpdate = false;
-
+    this.debugCache = false;
+    this.debugLevel = false;
     this.init();
-
     this.setSize(window.innerWidth, window.innerHeight);
   }
 
@@ -100,128 +91,76 @@ export class VirtualTexture {
 
     init() {
       this.resetCache();
-
       this.needsUpdate = true;
     }
 
     resetCache () {
-      // delete all entries in cache and set all slots as free
+      var id = PageId.create(0, 0, 0);
       this.cache.clear();
-      // set all slots in page table as -1 (invalid)
-      this.indirectionTable.clear(-1);
-      var pageId = PageId.create(0, this.indirectionTable.maxLevel);
-      var tile = new Tile(pageId, Number.MAX_VALUE);
+      this.indirectionTable.clear(id);
+      var tile = new Tile(id, Number.MAX_VALUE);
       this.tileQueue.push(tile);
     }
 
     update (renderer, camera) {
       //if(!this.needsUpdate) return;
-      this.tileDetermination.update(renderer, camera, this.usageTable);
-
-      var element, level, isUsed;
-      var releasedPagesCount = 0;
-      var restoredPagesCount = 0;
-      var alreadyCachedPagesCount = 0;
-      var tilesRequestedCount = 0;
-
-/*      for (element in this.cache.cachedPages) {
-        if (this.cache.cachedPages.hasOwnProperty(element)) {
-          element = parseInt(element, 10);
-
-          level = PageId.getMipMapLevel(element);
-          isUsed = this.usageTable.isUsed(element);
-
-          if ((!isUsed) && (level < this.maxMipMapLevel)) {
-            this.cache.releasePage(element);
-            ++releasedPagesCount;
-          }
-        }
-      }
-*/
-      var i, x, y, restored, wasRestored, pageId, pageNumber, mipMapLevel, elementCountAtLevel, status,
-        useProgressiveLoading, maxParentMipMapLevel, newNumber, newPageId, newPageStatus, tmpId, hits, tile;
+      this.tileDetermination.update( renderer, camera );
+      this.usageTable.update( this.tileDetermination.data );
 
       // find the items which are not cached yet
-      for (pageId in this.usageTable.table) {
+      for (let pageId in this.usageTable.table) {
         if (this.usageTable.table.hasOwnProperty(pageId)) {
-          wasRestored = false;
+          let pageX = PageId.getPageX(pageId);
+          let pageY = PageId.getPageY(pageId);
+          let pageZ = PageId.getPageZ(pageId);
+          let width = this.indirectionTable.getWidth(pageZ);
+          let height = this.indirectionTable.getHeight(pageZ);
 
-          pageId = parseInt(pageId, 10);
-          pageNumber = PageId.getPageNumber(pageId);
-          mipMapLevel = PageId.getMipMapLevel(pageId);
-          elementCountAtLevel = this.indirectionTable.getElementCountAtLevel(mipMapLevel);
-
-          if (pageNumber >= elementCountAtLevel) {
+          if (pageX >= width || pageY >= height || pageX < 0 || pageY < 0) {
             // FIXME: Pending bug
-            console.error('Out of bounds error:\npageNumber: ' + pageNumber + "\nmipMapLevel: " + mipMapLevel);
+            console.error('Out of bounds error:\npageX: ' + pageX + '\npageY: ' + pageY + '\npageZ: ' + pageZ);
             continue;
           }
 
-          status = this.cache.getPageStatus(pageId);
+          const status = this.cache.getPageStatus(pageId);
 
-          // if page is already cached, continue
-          if (StatusAvailable === status) {
-            ++alreadyCachedPagesCount;
-
-          } else if (StatusPendingDelete === status) {
-
-            // if page is pending delete, try to restore it
-            restored = this.cache.restorePage(pageId);
-            if (restored.wasRestored) {
-              this.indirectionTable.set(pageNumber, mipMapLevel, restored.id);
-
+          // if page is pending delete, try to restore it
+          let wasRestored = false;
+          if (StatusPendingDelete === status) {
+            slot = this.cache.restorePage(pageId);
+            if (slot != -1) {
+              this.indirectionTable.setValueAt(pageX, pageY, pageZ, slot);
               wasRestored = true;
-              ++restoredPagesCount;
             }
           }
 
           if ((StatusAvailable !== status) && !wasRestored) {
 
-            useProgressiveLoading = true;
-            maxParentMipMapLevel = useProgressiveLoading ? this.indirectionTable.maxLevel : (mipMapLevel + 1);
+            const minParentZ = this.useProgressiveLoading ? 0 : (pageZ - 1);
 
             // request the page and all parents
-            for (i = mipMapLevel; i < maxParentMipMapLevel; ++i) {
-              x = pageNumber % this.indirectionTable.getLevelWidth(mipMapLevel);
-              y = Math.floor(pageNumber / this.indirectionTable.getLevelHeight(mipMapLevel));
+            while (pageZ > minParentZ) {
 
-              x >>= (i - mipMapLevel);
-              y >>= (i - mipMapLevel);
-
-              newNumber = y * this.indirectionTable.getLevelWidth(i) + x;
-              newPageId = PageId.create(newNumber, i);
-
-              newPageStatus = this.cache.getPageStatus(newPageId);
+              const newPageId = PageId.create(pageX, pageY, pageZ);
+              const newPageStatus = this.cache.getPageStatus(newPageId);
 
               // FIXME: should try to restore page?
-              //restored = this.cache.restorePage(newPageId);
-              //if ((StatusAvailable !== newPageStatus) && !restored.wasRestored) {
+              //slot = this.cache.restorePage(newPageId);
+              //if ((StatusAvailable !== newPageStatus) && slot == -1) {
               if ((StatusAvailable !== newPageStatus)) {
                 if (!this.tileQueue.contains(newPageId)) {
-                  tmpId = ((newPageId !== pageId) ? pageId : PageId.createInvalid());
-                  hits = this.usageTable.table[pageId].hits;
-                  tile = new Tile(newPageId, hits, tmpId);
-
+                  const hits = this.usageTable.table[pageId];
+                  const tile = new Tile(newPageId, hits);
                   this.tileQueue.push(tile);
-                  ++tilesRequestedCount;
                 }
               }
-            } // for (var i = mipMapLevel; i < maxParentMipMapLevel; ++i) {
+              pageX >>= 1;
+              pageY >>= 1;
+              --pageZ;
+            }
           }
         }
       } // for (var pageId in this.sparseTable.table) {
-
-      var cacheStatusData = this.cache.getStatus(0, 0, 0);
-
-      /*console.log('# Released Pages: ' + releasedPagesCount + '\n' +
-        '# Restored Pages: ' + restoredPagesCount + '\n' +
-        '# Already Cached Pages: ' + alreadyCachedPagesCount + '\n' +
-        '# Tiles Requested: ' + tilesRequestedCount);
-
-      console.log("EntryCount:\t"   + this.usageTable.entryCount +
-            "\nUsed:\t\t"   + cacheStatusData.used +
-            "\nFree:\t\t"   + cacheStatusData.free +
-            "\nMarkedFree:\t"   + cacheStatusData.markedFree);*/
 
       this.cache.update( renderer );
       this.indirectionTable.update( this.cache );
@@ -249,11 +188,12 @@ export class VirtualTexture {
       this.tileDetermination.scene.add(meshVT);
     };
 
-    createMaterial ( parameters ) {
+    createMaterial ( parameters, textureName ) {
 
       const material = new ShaderMaterial( parameters );
       const uniforms = VirtualTextureShader.uniforms;
       material.uniforms = UniformsUtils.merge( [ uniforms, material.uniforms ] ),
+      material.virtualTextureName = textureName;
       this.updateUniforms( material );
       return material;
 
@@ -262,16 +202,14 @@ export class VirtualTexture {
     updateUniforms ( material ) {
 
       const uniforms = material.uniforms;
-      const pageSizeInTextureSpaceXY = [
-        this.cache.usablePageSize / this.cache.size.x,
-        this.cache.usablePageSize / this.cache.size.y
-      ];
+      uniforms[material.virtualTextureName].value = this.cache.texture;
       uniforms.tCacheIndirection.value = this.indirectionTable.texture;
-      uniforms.vCachePageSize.value = pageSizeInTextureSpaceXY;
-      uniforms.vCacheSize.value = [ this.cache.width, this.cache.height ];
-      uniforms.vTextureSize.value = this.size;
+      uniforms.vPadding.value = [ this.cache.padding/this.cache.realTileSize.x , this.cache.padding/this.cache.realTileSize.y ];
+      uniforms.vClamping.value = [ 0.5/this.cache.realTileSize.x , 0.5/this.cache.realTileSize.y ];
+      uniforms.vNumTiles.value = [ this.cache.tileCountPerSide.x , this.cache.tileCountPerSide.y ];
       uniforms.fMaxMipMapLevel.value = this.maxMipMapLevel;
-      uniforms.tDiffuse.value = this.cache.textures.tDiffuse;
+      uniforms.bDebugCache.value = this.debugCache;
+      uniforms.bDebugLevel.value = this.debugLevel;
 
     };
 };

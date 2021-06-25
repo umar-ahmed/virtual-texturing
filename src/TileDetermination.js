@@ -6,9 +6,10 @@ import { Scene, NearestFilter, RGBAFormat, WebGLRenderTarget } from '../examples
 export class TileDetermination {
   constructor() {
     this.scene = new Scene();
-    this.canvas = null;
     this.renderTarget = null;
     this.data = null;
+    // debug
+    this.canvas = null;
     this.imgData = null;
   }
 
@@ -91,38 +92,20 @@ export class TileDetermination {
     document.body.appendChild(this.canvas);
   }
 
-  parseData(sparseTable) {
-    let i, r, g, b;
-    const numPixels = this.data.length;
+  // parse render taget pixels (mip map levels and visible tile)
+  update ( renderer, camera ) {
 
-    for (i = 0; i < numPixels; i += 4) {
-
-      if (0 !== this.data[i + 3]) {
-        r = this.data[i];
-        g = this.data[i + 1];
-        b = this.data[i + 2];
-
-        sparseTable.set(r, g, b);
-      }
-    }
+    renderer.setRenderTarget( this.renderTarget );
+    renderer.render( this.scene, camera );
+    renderer.setRenderTarget( null );
+    renderer.readRenderTargetPixels( this.renderTarget, 0, 0,
+      this.renderTarget.width, this.renderTarget.height, this.data );
 
     if (this.canvas) {
       // copy the flipped texture to data
       this.imgData.data.set(this.data);
       this.canvas.getContext('2d').putImageData(this.imgData, 0, 0);
     }
-  }
-
-  // parse render taget pixels (mip map levels and visible tile)
-  update (renderer, camera, sparseTable) {
-
-    renderer.setRenderTarget( this.renderTarget );
-    renderer.render( this.scene, camera );
-    renderer.readRenderTargetPixels( this.renderTarget,
-      0, 0, this.renderTarget.width, this.renderTarget.height, this.data );
-    this.parseData(sparseTable);
-    renderer.setRenderTarget( null );
-
   }
 
 };

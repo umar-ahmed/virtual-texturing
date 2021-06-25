@@ -21,6 +21,16 @@ export class APP {
 
   }
 
+  onKeyDown(event) {
+    switch(event.key) {
+      case "l": this.virtualTexture.debugLevel = !this.virtualTexture.debugLevel; break;
+      case "c": this.virtualTexture.debugCache = !this.virtualTexture.debugCache; break;
+      case "i": console.log(this.virtualTexture.cache.getStatus()); break;
+      default: return; break;
+    }
+    this.virtualTexture.updateUniforms(this.material);
+    event.preventDefault();
+  }
 
   resize() {
     const w = window.innerWidth;
@@ -84,19 +94,20 @@ export class APP {
     this.controls.dragToLook = true;
 
     window.addEventListener('resize', this.resize.bind(this), false);
+    window.addEventListener('keydown', this.onKeyDown.bind(this), false);
     return true;
   }
 
   load(geometry, config) {
 
     this.virtualTexture = new VirtualTexture(config);
-    this.material = this.virtualTexture.createMaterial(RenderWithVtShader);
+    this.material = this.virtualTexture.createMaterial(RenderWithVtShader, 'tDiffuse');
     const mesh = new Mesh(geometry, this.material);
     this.scene.add(mesh);
     this.virtualTexture.addGeometry(geometry);
 
     // init debug helpers
-    this.virtualTexture.tileDetermination.debug();
-    this.virtualTexture.indirectionTable.debug();
+    //this.virtualTexture.tileDetermination.debug();
+    //this.virtualTexture.indirectionTable.debug();
   }
 };

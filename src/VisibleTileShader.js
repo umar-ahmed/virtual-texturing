@@ -13,7 +13,7 @@ const pars_vertex = [
 
 const vertex = [
   "vec4 mvPosition = (modelViewMatrix * vec4( position, 1.0 ));",
-  "vUv = uv;",
+  "vUv = vec2(uv.x, 1. - uv.y);",
   "gl_Position = projectionMatrix * mvPosition;"
 ].join("\n");
 
@@ -29,10 +29,8 @@ const pars_fragment = [
   "float MipLevel(vec2 uv, vec2 size)",
   "{",
     "vec2 coordPixels = uv * size;",
-
     "vec2 dx = dFdx(coordPixels);",
     "vec2 dy = dFdy(coordPixels);",
-
     "float d = max(dot( dx, dx ), dot( dy, dy ) );",
     "return 0.5 * log2( d ) - 1.0;",
   "}"
@@ -41,13 +39,10 @@ const pars_fragment = [
 const fragment = [
   "float mipLevel  = floor( MipLevel( vUv, fVirtualTextureSize ));",
   "mipLevel = clamp(mipLevel, 0.0, fMaximumMipMapLevel);",
-
-  "vec4 result;",
-  "result.rg = floor( vUv.xy * fTileCount / exp2(mipLevel));", // pageId
-  "result.b = mipLevel;",
-  "result.a = fVirtualTextureId;",
-
-  "gl_FragColor = result/255.0;"
+  "float size = fTileCount * exp2(-mipLevel);",
+  "vec2 id = floor( vUv.xy * size );",
+  "id = clamp(id, 0., size-1.);",
+  "gl_FragColor = vec4(id, mipLevel, fVirtualTextureId)/255.0;"
 ].join("\n");
 
 

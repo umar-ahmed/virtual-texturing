@@ -1,17 +1,11 @@
 
 
 export class NodeTree {
-  constructor (id, value, level) {
+  constructor (value) {
     this.children = [null, null, null, null];
-    this.id = id;
-    this.level = level;
     this.needsUpdate = false;
     this.value = value;
     this.visited = false;
-  }
-  
-  update (value) {
-    this.value = parseInt(value, 10);
   }
 
   setChildren (children0, children1, children2, children3) {

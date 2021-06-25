@@ -11,163 +11,105 @@ export const StatusPendingDelete = 2;
 export class Cache {
 
   constructor(tileSize, padding, width, height) {
-    this.width = width;
-    this.height = height;
-
     this.realTileSize = {
       x: tileSize + (2 * padding),
       y: tileSize + (2 * padding)
     };
 
     this.tileCountPerSide = {
-      x: parseInt(this.width / this.realTileSize.x, 10),
-      y: parseInt(this.height / this.realTileSize.y, 10)
+      x: Math.floor(width / this.realTileSize.x),
+      y: Math.floor(height / this.realTileSize.y)
     };
 
-    this.tileCount = this.tileCountPerSide.x * this.tileCountPerSide.y;
+    this.width = this.tileCountPerSide.x * this.realTileSize.x;
+    this.height = this.tileCountPerSide.y * this.realTileSize.y;
 
     this.usablePageSize = tileSize;
     this.padding = padding;
-    this.size = {
-      x: width,
-      y: height
-    };
 
-    this.relativePadding = {
-      x: padding / this.width,
-      y : padding / this.height
-    };
+    this.texture = null;
 
-    this.textures = {
-      tDiffuse : null
-    };
+    this.cachedSlots = {}; // id -> slot
+    this.newTiles = {}; // slot -> Tile
+    this.freeSlots = []; // slot -> bool
+    this.pages = []; // slot -> Page
 
-    this.cachedPages = {};
-    this.freeSlots = [];
-    this.slots = [];
-    this.loadingQueue = [];
-    this.newPages = {};
+    const numPages = this.tileCountPerSide.x * this.tileCountPerSide.y;
+    for (let i = 0; i < numPages; ++i) {
+      this.pages.push(new Page());
+    }
 
-    this.init();
+    this.initTexture();
     this.clear();
   }
 
-  init () {
-    var i, type, texture;
-
-    for (i = 0; i < this.tileCount; ++i) {
-      this.slots.push(new Page());
-    }
-
-    for (type in this.textures) {
-      if (this.textures.hasOwnProperty(type)) {
-        texture = new DataTexture(
-          null,
-          this.width,
-          this.height,
-          RGBAFormat,
-          UnsignedByteType,
-          UVMapping,
-          ClampToEdgeWrapping,
-          ClampToEdgeWrapping,
-          LinearFilter,
-          LinearFilter
-        );
-
-        texture.generateMipmaps = false;
-        texture.needsUpdate = true;
-        this.textures[type] = texture;
-        texture.name = type;
-      }
-    }
+  initTexture() {
+    this.texture = new DataTexture(
+      null,
+      this.width,
+      this.height,
+      RGBAFormat,
+      UnsignedByteType,
+      UVMapping,
+      ClampToEdgeWrapping,
+      ClampToEdgeWrapping,
+      LinearFilter,
+      LinearFilter
+    );
+    this.texture.generateMipmaps = false;
+    this.texture.needsUpdate = true;
   }
 
-  getNextFreeSlot () {
-    try {
-      if (!this.hasFreeSlot()) {
-        this.freeSlot();
-      }
-
-      // get the first slot
-      var id, slot;
-      //for (var slot in this.freeSlots) {
-      for (slot = 0; slot < this.freeSlots.length; ++slot) {
-        if (true === this.freeSlots[slot]) {
-          this.freeSlots[slot] = false;
-          id = slot;
-
-          // end iteration, we just want one item
-          break;
-        }
-      }
-
-      if (undefined === id) {
-        console.error("FreeSlotNotFound");
-      }
-
-      return parseInt(id, 10);
-
-    } catch (e) {
-      console.log(e.stack);
-    }
-  }
-
-  getPageCoordinates (id) {
-    var topLeftCorner = [
-      ((id % this.tileCountPerSide.x) * this.realTileSize.x) / this.size.x,
-      (Math.floor(id / this.tileCountPerSide.y) * this.realTileSize.y) / this.size.y];
-
-    // add offset
-    topLeftCorner[0] += this.relativePadding.x;
-    topLeftCorner[1] += this.relativePadding.y;
-
-    return topLeftCorner;
-  }
-
-  getPageSizeInTextureSpace () {
-    var space = [
-      this.usablePageSize / this.size.x,
-      this.usablePageSize / this.size.y];
-
-    return space;
-  }
-
+  // if possible, move page to the free list
   releasePage (id) {
-    // if possible, move page to the free list
-    if (undefined !== this.cachedPages[id]) {
-      var slot = this.cachedPages[id];
-      this.freeSlots[slot] = true;
-    }
+    var slot = this.cachedSlots[id];
+    if (undefined !== slot) this.freeSlots[slot] = true;
   }
 
-  getPageMipLevel (id) {
-    if (this.slots[id] === undefined) {
-      console.error("page on slot " + id + " is undefined");
+  getPageX (slot) {
+    return slot % this.tileCountPerSide.x;
+  }
+
+  getPageY (slot) {
+    return Math.floor(slot / this.tileCountPerSide.x);
+  }
+
+  getPageZ (slot) {
+    if (this.pages[slot] === undefined) {
+      console.error("page on slot " + slot + " is undefined");
       return -1;
     }
-
-    return this.slots[id].mipLevel;
+    return this.pages[slot].z;
   }
 
   onPageDropped (id) {
     if (this.pageDroppedCallback) {
       this.pageDroppedCallback(
-        PageId.getPageNumber(id),
-        PageId.getMipMapLevel(id)
+        PageId.getPageX(id),
+        PageId.getPageY(id),
+        PageId.getPageZ(id)
       );
     }
   }
 
   getPageStatus (id) {
-    if (!this.cachedPages[id]) {
+    const slot = this.cachedSlots[id];
+    if (slot === undefined) {
       return StatusNotAvailable;
     }
 
-    if (!this.slots[this.cachedPages[id]].valid) {
+    const page = this.pages[slot];
+
+    if (undefined === page) {
+      console.error(slot, id, 'undefined page');
       return StatusNotAvailable;
     }
 
-    if (true === this.freeSlots[this.cachedPages[id]]) {
+    if (!page.valid) {
+      return StatusNotAvailable;
+    }
+
+    if (this.freeSlots[slot]) {
       return StatusPendingDelete;
     }
 
@@ -175,166 +117,113 @@ export class Cache {
   }
 
   restorePage (id) {
-    try {
-      if (!this.cachedPages[id]) {
-        return {
-          wasRestored: false,
-          id: -1
-        };
-      }
-
-      if (this.slots[this.cachedPages[id]].pageId !== parseInt(id, 10)) {
-        console.error("ErrorOnId");
-      }
-
-      this.freeSlots[this.cachedPages[id]] = false;
-
-      return {
-        wasRestored: true,
-        id: this.cachedPages[id]
-      };
-    } catch (e) {
-      console.log(e.stack);
-    }
+    const slot = this.cachedSlots[id];
+    if (slot === undefined)  return -1;
+    // if (this.pages[slot].pageId !== id) console.error("ErrorOnId");
+    this.freeSlots[slot] = false;
+    return slot;
   }
 
-  getStatus (slotsUsed, slotsMarkedFree, slotsEmpty) {
-    var i;
-    slotsUsed = slotsMarkedFree = slotsEmpty = 0;
-
-    for (i = 0; i < this.slots.length; ++i) {
-      if (true === this.slots[i].valid) {
-        ++slotsUsed;
-      } else {
-        ++slotsMarkedFree;
-      }
-    }
-
-    for (i = 0; i < this.freeSlots.length; ++i) {
-      if (true === this.freeSlots[i]) {
-        ++slotsEmpty;
-      }
-    }
+  getStatus () {
+    let usedSlots = this.pages.reduce((count, page) => count + page.valid , 0);
+    let freeSlots = this.freeSlots.reduce((count, freeSlot) => count + freeSlot , 0);
 
     return {
-      used: slotsUsed,
-      markedFree: slotsMarkedFree,
-      free: slotsEmpty
+      used: usedSlots,
+      markedFree: this.pages.length - usedSlots,
+      free: freeSlots
     }
   }
 
   clear () {
-    this.cachedPages = {};
+    this.cachedSlots = {};
     this.freeSlots = [];
 
-    var i;
-
-    for (i = 0; i < this.tileCount; ++i) {
-      this.slots[i].valid = false;
+    for (let i = 0; i < this.pages.length; ++i) {
+      this.pages[i].valid = false;
       this.freeSlots[i] = true;
     }
   }
 
-  freeSlot () {
-    // find one slot and free it
-    // this function gets called when no slots are free
-    try {
-      var i, page, minMipLevel = Number.MAX_VALUE;
+  getNextFreeSlot () {
+      let slot = this.freeSlots.findIndex(value => value);
+      return (slot < 0) ? this.freeSlot() : slot;
+  }
 
-      for (i = 0; i < this.tileCount; ++i) {
-        if ((false === this.slots[i].forced) && (this.slots[i].mipLevel < minMipLevel)) {
-          minMipLevel = this.slots[i].mipLevel;
-          page = i;
+  // find one slot and free it
+  // this function gets called when no slots are free
+  freeSlot () {
+    try {
+      let slot = undefined, zmax = -1;
+      for (let i = 0; i < this.pages.length; ++i) {
+        const page = this.pages[i];
+        if ((!page.forced) && (page.z > zmax)) {
+          zmax = page.z;
+          slot = i;
         }
       }
 
-      if ((undefined === page) || (true === this.slots[page].forced)) {
+      if (undefined === slot) {
         console.error("FreeSlotNotFound");
       }
 
-      this.freeSlots[page] = true;
+      this.freeSlots[slot] = true;
+      return slot;
     } catch (e) {
       console.log(e.stack);
     }
   }
 
   hasFreeSlot () {
-    var i;
-    for (i = 0; i < this.freeSlots.length; ++i) {
-      if (true === this.freeSlots[i]) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  reset () {
-    try {
-      var id = PageId.create(0, 4);
-      var tile = new Tile(id);
-
-      this.cachePage(tile, true);
-
-    } catch (e) {
-      console.log(e.stack);
-    }
-  }
-
-  drawToTexture (renderer, tile, x, y) {
-    const pos = new Vector2().set(x, y);
-    renderer.copyTextureToTexture(pos, tile, this.textures.tDiffuse);
+    return this.freeSlots.includes(true);
   }
 
   writeToCache (id, forced) {
     // try to restore
-    if (this.restorePage(id).wasRestored) {
-      return this.cachedPages[id];
+    let slot = this.restorePage(id);
+    if (slot >= 0) {
+      return slot;
     }
 
     // get the next free page
-    var page = this.getNextFreeSlot();
-    this.cachedPages[id] = page;
+    slot = this.getNextFreeSlot();
+    this.freeSlots[slot] = false;
+    this.cachedSlots[id] = slot;
+    const page = this.pages[slot];
 
-    if (this.slots[page].valid) {
-      this.onPageDropped(this.slots[page].pageId);
-      // remove it now, (otherwise handles leak)
-      delete this.cachedPages[this.slots[page].pageId];
-      //this.cachedPages[this.slots[page].pageId] = undefined;
+    // if valid, remove it now, (otherwise handles leak)
+    if (page.valid) {
+      this.onPageDropped(page.pageId);
+      delete this.cachedSlots[page.pageId];
     }
 
     // update slot
-    this.slots[page].forced = forced;
-    this.slots[page].mipLevel = PageId.getMipMapLevel(id);
-    this.slots[page].pageId = id;
-    this.slots[page].valid = true;
+    page.forced = forced;
+    page.z = PageId.getPageZ(id);
+    page.pageId = id;
+    page.valid = true;
 
-    return page;
+    return slot;
   }
 
   update(renderer) {
-    for(const page in this.newPages) {
-
-      const tile = this.newPages[page];
+    const pos = new Vector2();
+    for(const slot in this.newTiles) {
+      const tile = this.newTiles[slot];
       if (!tile.loaded) continue;
-
-      // compute x,y coordinate
-      var x = parseInt((page % this.tileCountPerSide.x) * this.realTileSize.x, 10);
-      var y = parseInt(Math.floor((page / this.tileCountPerSide.y)) * this.realTileSize.y, 10);
-
-      this.drawToTexture(renderer, tile, x, y);
-      delete this.newPages[page];
-
+      const x = this.realTileSize.x * this.getPageX(slot);
+      const y = this.realTileSize.y * this.getPageY(slot);
+      pos.set(x, y);
+      renderer.copyTextureToTexture(pos, tile, this.texture);
+      delete this.newTiles[slot];
     }
   }
 
-
-
-  cachePage (tile, forced) {
+  cacheTile (tile, forced) {
     try {
-      const page = this.writeToCache(tile.id, forced);
-      this.newPages[page] = tile;
-      return page;
+      const slot = this.writeToCache(tile.id, forced);
+      this.newTiles[slot] = tile;
+      return slot;
     } catch (e) {
       console.log(e.stack);
     }

@@ -9,7 +9,7 @@
  * level n-th has only 1 entry
 */
 import { NodeTree } from './NodeTree.js';
-import { DataTexture, RGBAFormat, FloatType, UVMapping, ClampToEdgeWrapping, NearestFilter }
+import { DataTexture, RGBAIntegerFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, NearestFilter }
 from '../examples/jsm/three.module.js';
 
 export class IndirectionTable {
@@ -17,77 +17,73 @@ export class IndirectionTable {
 
     // quad-tree representation
     this.nodes = null;
-    this.offsets = [];
     this.maxLevel = 0;
     this.size = size;
+    this.offsets = null;
 
     // graphics and webgl stuff
-    this.dataArray = new Float32Array(size * size * 4);
+    this.texture = null;
+    this.dataArrays = null;
+
+    // debug
     this.canvas = null;
     this.imageData = null;
-    this.texture = null;
-    this.dataPerLevel = [];
 
     this.init(size);
   }
 
   init (size) {
     this.maxLevel = Math.floor(Math.log(size) / Math.log(2));
+    this.offsets = new Array(this.maxLevel + 1);
+    this.dataArrays = new Array(this.maxLevel + 1);
 
     let i, j, offset;
     let accumulator = 0;
     let numElements = size * size;
-    for (i = 0; i <= this.maxLevel; ++i) {
+    for (i = this.maxLevel; i >= 0; --i) {
 
-      this.offsets.push(accumulator);
-      this.dataPerLevel.push(new Float32Array(numElements * 4));
+      this.offsets[i] = accumulator;
+      this.dataArrays[i] = new Uint8Array(numElements * 4);
       accumulator += numElements;
       numElements >>= 2;
     }
 
-    //this.nodes = new Array(accumulator);
     this.nodes = [];
     for (i = 0; i < accumulator; ++i) {
       this.nodes[i] = undefined;
     }
 
-    for (i = 0; i < this.dataPerLevel.length; ++i) {
-      const numData = this.dataPerLevel[i].length;
+    for (i = 0; i < this.dataArrays.length; ++i) {
+      const numData = this.dataArrays[i].length;
       for (j = 0; j < numData; j += 4) {
-        this.dataPerLevel[i][j] = 0.0;
-        this.dataPerLevel[i][j + 1] = 0.0;
-        this.dataPerLevel[i][j + 2] = 0.0;
-        this.dataPerLevel[i][j + 3] = 255.0;
+        this.dataArrays[i][j] = 0.0;
+        this.dataArrays[i][j + 1] = 0.0;
+        this.dataArrays[i][j + 2] = 0.0;
+        this.dataArrays[i][j + 3] = 255.0;
       }
     }
 
-    for (i = 0; i < this.dataArray.length; ++i) {
-      offset = i * 4;
-      this.dataArray[offset] = 0.0;
-      this.dataArray[offset + 1] = 0.0;
-      this.dataArray[offset + 2] = 0.0;
-      this.dataArray[offset + 3] = 255.0;
-    }
-
     this.texture = new DataTexture(
-      this.dataArray,
+      this.dataArrays[this.maxLevel],
       size, //width
       size, //height
-      RGBAFormat,
-      FloatType,
+      RGBAIntegerFormat,
+      UnsignedByteType,
       UVMapping,
       ClampToEdgeWrapping,
       ClampToEdgeWrapping,
       NearestFilter,
       NearestFilter
     );
-
+    this.texture.internalFormat = 'RGBA8UI';
     this.texture.name = 'indirection_table';
     this.texture.generateMipmaps = false;
     this.texture.needsUpdate = true;
   }
 
   debug (params) {
+
+    if( this.canvas ) return;
 
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.size;
@@ -132,124 +128,82 @@ export class IndirectionTable {
     document.body.appendChild(this.canvas);
   }
 
-  setChildren (entry, level, value, predicate) {
-    if (0 === level) {
-      return;
-    }
-
-    var i, iy, ix, currentEntry, element;
-    var x = entry % this.getLevelWidth(level);
-    var y = Math.floor(entry / this.getLevelHeight(level));
-
-    var size = 1;
-    for (i = level - 1; i >= 0; --i) {
+  setChildren (x, y, z, newValue, oldValue) {
+    if (z == this.maxLevel) return;
+    let size = 1;
+    for (let iz = z + 1; iz <= this.maxLevel; ++iz) {
       x <<= 1;
       y <<= 1;
       size <<= 1;
 
-      for (iy = 0; iy < size; ++iy) {
-        for (ix = 0; ix < size; ++ix) {
-          currentEntry = this.getEntryIndex(x + ix, y + iy, i);
-          element = this.getElementAt(currentEntry, i).value;
+      for (let iy = y; iy < y+size; ++iy)
+        for (let ix = x; ix < x+size; ++ix)
+          if (this.getValueAt(ix, iy, iz) === oldValue)
+            this.setValueAt(ix, iy, iz, newValue);
+    }
+  }
 
-          if (predicate === element) {
-            this.set(currentEntry, i, value);
-          }
-        }
+  writeToCanvas(cache) {
+    const data = this.dataArrays[this.maxLevel];
+    for (let j = 0; j < data.length; j += 4) {
+      this.imageData.data[j    ] = data[j    ] * 255 / cache.tileCountPerSide.x;
+      this.imageData.data[j + 1] = data[j + 1] * 255 / cache.tileCountPerSide.y;
+      this.imageData.data[j + 2] = data[j + 2] * 255 / this.maxLevel;
+      this.imageData.data[j + 3] = data[j + 3];
+    }
+    this.canvas.getContext('2d').putImageData(this.imageData, 0, 0);
+  }
+
+  writeToTexture() {
+    this.texture.needsUpdate = true;
+  }
+
+  setData(z, cache) {
+    const width = this.getWidth(z);
+    const height = this.getHeight(z);
+
+    for (let x = 0; x < width; ++x) {
+      for (let y = 0; y < height; ++y) {
+        const id = this.getValueAt(x, y, z);
+        const offset = (width*y + x) * 4 ;
+        this.dataArrays[z][offset    ] = cache.getPageX(id);
+        this.dataArrays[z][offset + 1] = cache.getPageY(id);
+        this.dataArrays[z][offset + 2] = cache.getPageZ(id);
+        this.dataArrays[z][offset + 3] = 255;
       }
     }
   }
 
+
   update (cache) {
-
-    var i, x, y, root, height, width, scope, lowerX, lowerY, idx, node, mipMapLevel;
-
-    scope = this;
-
-    root = this.nodes[this.nodes.length - 1];
+    const  root = this.nodes[this.nodes.length - 1];
     root.needsUpdate = true;
     root.visited = false;
+    for (let z = 0; z < this.maxLevel; ++z) {
+      const height = this.getHeight(z);
 
-    function setData(quadTreeLevel) {
-      var _idx, _node, _coords, _mipMapLevel, _offset;
-      var _length = scope.getElementCountAtLevel(quadTreeLevel);
+      for (let y = 0; y < height; ++y) {
+        const width = this.getWidth(z);
 
-      for (_idx = 0; _idx < _length; ++_idx) {
-        _node = scope.getElementAt(_idx, 0);
-        _coords = cache.getPageCoordinates(_node.value);
-        _mipMapLevel = scope.maxLevel - cache.getPageMipLevel(_node.value);
-
-        // idx => page
-        _offset = _idx * 4;
-
-        scope.dataArray[_offset] = _coords[0];
-        scope.dataArray[_offset + 1] = _coords[1];
-        scope.dataArray[_offset + 2] = _mipMapLevel;
-        scope.dataArray[_offset + 3] = 255.0;
-
-        scope.imageData.data[_offset] = parseInt(255 * _coords[0], 10);
-        scope.imageData.data[_offset + 1] = parseInt(255 * _coords[1], 10);
-        scope.imageData.data[_offset + 2] = parseInt(255 * _mipMapLevel, 10);
-        scope.imageData.data[_offset + 3] = 255;
-      }
-    }
-
-    function writeToCanvas() {
-      scope.canvas.getContext('2d').putImageData(scope.imageData, 0, 0);
-    }
-
-    function writeToTexture() {
-      scope.texture.needsUpdate = true;
-    }
-
-    function setUpdate(_x, _y, _level, _handle, _mipMapLevel) {
-      var _entry = scope.getEntryIndex(_x, _y, _level);
-      var _node = scope.getElementAt(_entry, _level);
-
-      var _isEmpty = ((-1) === _node.value);
-
-      if (_isEmpty || (cache.getPageMipLevel(_node.value) > _mipMapLevel)) {
-        scope.set(_entry, _level, _handle);
-      }
-
-      return false;
-    }
-
-    for (i = this.maxLevel; i >= 1; --i) {
-      height = this.getLevelHeight(i);
-
-      for (y = 0; y < height; ++y) {
-        width = this.getLevelWidth(i);
-
-        for (x = 0; x < width; ++x) {
+        for (let x = 0; x < width; ++x) {
 
           // update corresponding elements
-          lowerX = x << 1;
-          lowerY = y << 1;
+          const lowerX = x << 1;
+          const lowerY = y << 1;
+          const lowerZ = z + 1;
 
-          idx = this.getEntryIndex(x, y, i);
-          node = this.getElementAt(idx, i);
+          const node = this.getElementAt(x, y, z);
 
           if (-1 === node.value) {
             console.error("Not Found");
             continue;
           }
 
-          mipMapLevel = cache.getPageMipLevel(node.value);
-
-          // update four children     ---------
-          //              | a | b |
-          //              |---  |---  |
-          //              | c | d |
-          //              ---------
-          // a
-          setUpdate(lowerX, lowerY, i - 1, node.value, mipMapLevel);
-          // b
-          setUpdate(lowerX + 1, lowerY, i - 1, node.value, mipMapLevel);
-          // c
-          setUpdate(lowerX, lowerY + 1, i - 1, node.value, mipMapLevel);
-          // d
-          setUpdate(lowerX + 1, lowerY + 1, i - 1, node.value, mipMapLevel);
+          const pageZ = cache.getPageZ(node.value);
+          this.setUpdate(lowerX, lowerY, lowerZ, node.value, pageZ, cache);
+          this.setUpdate(lowerX + 1, lowerY, lowerZ, node.value, pageZ, cache);
+          this.setUpdate(lowerX, lowerY + 1, lowerZ, node.value, pageZ, cache);
+          this.setUpdate(lowerX + 1, lowerY + 1, lowerZ, node.value, pageZ, cache);
 
           node.children[0].visited = false;
           node.children[1].visited = false;
@@ -260,104 +214,71 @@ export class IndirectionTable {
           node.canMergeChildren();
         }
       }
-      //console.log('LEVEL');
     }
 
-    setData(0);
-    writeToCanvas();
-    writeToTexture();
+    for( let l = 0; l <= this.maxLevel; ++l) this.setData(l, cache);
+    this.writeToTexture();
+    if (this.canvas) this.writeToCanvas(cache);
 
   }
 
-  getLevelWidth (level) {
-    return 1 << (this.maxLevel - level);
+  getEntryIndex (x, y, z) {
+    return this.offsets[z] + y * this.getWidth(z) + x;
   }
 
-  getLevelHeight (level) {
-    return 1 << (this.maxLevel - level);
+  getElementAt (x, y, z) {
+    return this.nodes[this.getEntryIndex(x, y, z)];
   }
 
-  getEntryIndex (x, y, level) {
-    var countX = this.getLevelWidth(level);
-    if (x > countX) {
-      console.error('x is > total width of level ' + level + ' (' + countX + ')');
+  getValueAt (x, y, z) {
+    return this.getElementAt(x, y, z).value;
+  }
+
+  setValueAt (x, y, z, value) {
+    this.getElementAt(x, y, z).value = value;
+  }
+
+  setUpdateClear(x, y, z, newValue) {
+    const child = new NodeTree(newValue);
+    this.nodes[this.getEntryIndex(x, y, z)] = child;
+    return child;
+  }
+
+  setUpdate(x, y, z, newValue, pageZ, cache) {
+    const value = this.getValueAt(x, y, z);
+    const isEmpty = ((-1) === value);
+    if (isEmpty || (cache.getPageZ(value) < pageZ)) {
+      this.setValueAt(x, y, z, newValue);
     }
-
-    var offsetY = y * countX;
-    var index = offsetY + x;
-
-    return index;
   }
 
-  getElementAt (entry, level) {
-    var offset = this.offsets[level];
-    var stride = offset + entry;
-    var value = parseInt(this.nodes[stride].value, 10);
-
-    if (isNaN(value)) {
-      console.error('elemenet is NaN.');
-    }
-
-    return this.nodes[stride];
-  }
-
-  set (entry, level, newValue) {
-    if (isNaN(entry) || isNaN(level) || isNaN(newValue)) {
-      console.error('NaN detected on IndirectionTable.set');
-      return false;
-    }
-
-    var offset = this.offsets[level];
-    var stride = offset + entry;
-
-    newValue = parseInt(newValue, 10);
-    this.nodes[stride].update(newValue);
-  }
-
-  clear (clearValue) {
-    var y, x, a, b, c, d, lowerX, lowerY, idx, node, mipMapLevel;
-
-    var scope = this;
-    function setUpdate(x, y, level, newValue) {
-      var entry = scope.getEntryIndex(x, y, level);
-
-      var offset = scope.offsets[level];
-      var stride = offset + entry;
-      var child = new NodeTree(entry, newValue, level);
-      scope.nodes[stride] = child;
-
-      return child;
-    }
-
-    clearValue = parseInt(clearValue, 10);
-
-    this.nodes[this.nodes.length - 1] = new NodeTree(0, clearValue, 0);
-    for (mipMapLevel = scope.maxLevel; mipMapLevel >= 1; --mipMapLevel) {
-      for (y = 0; y < scope.getLevelHeight(mipMapLevel); ++y) {
-        for (x = 0; x < scope.getLevelWidth(mipMapLevel); ++x) {
+  clear (id) {
+    this.nodes[this.nodes.length - 1] = new NodeTree(id);
+    for (let z = 0; z < this.maxLevel; ++z) {
+      for (let y = 0; y < this.getHeight(z); ++y) {
+        for (let x = 0; x < this.getWidth(z); ++x) {
 
           // update corresponding elements
-          lowerX = x << 1;
-          lowerY = y << 1;
+          let X = x << 1;
+          let Y = y << 1;
+          let Z = z+1;
 
-          idx = scope.getEntryIndex(x, y, mipMapLevel);
-          node = scope.getElementAt(idx, mipMapLevel);
-
-          a = setUpdate(lowerX, lowerY, mipMapLevel - 1, node.value);
-          b = setUpdate(lowerX + 1, lowerY, mipMapLevel - 1, node.value);
-          c = setUpdate(lowerX, lowerY + 1, mipMapLevel - 1, node.value);
-          d = setUpdate(lowerX + 1, lowerY + 1, mipMapLevel - 1, node.value);
-
+          let node = this.getElementAt(x, y, z);
+          let a = this.setUpdateClear(X    , Y    , Z, node.value);
+          let b = this.setUpdateClear(X + 1, Y    , Z, node.value);
+          let c = this.setUpdateClear(X    , Y + 1, Z, node.value);
+          let d = this.setUpdateClear(X + 1, Y + 1, Z, node.value);
           node.setChildren(a, b, c, d);
         }
       }
     }
   }
 
-  getElementCountAtLevel (level) {
-    var countX = this.getLevelWidth(level);
-    var countY = this.getLevelHeight(level);
-    var total = countX * countY;
-    return total;
+  getWidth (z) {
+    return 1 << z;
+  }
+
+  getHeight (z) {
+    return 1 << z;
   }
 };
