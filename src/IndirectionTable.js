@@ -158,7 +158,7 @@ export class IndirectionTable {
     this.texture.needsUpdate = true;
   }
 
-  setData(z, cache) {
+  setData(z, cache, renderCount) {
     const width = this.getWidth(z);
     const height = this.getHeight(z);
 
@@ -169,13 +169,13 @@ export class IndirectionTable {
         this.dataArrays[z][offset    ] = cache.getPageX(id);
         this.dataArrays[z][offset + 1] = cache.getPageY(id);
         this.dataArrays[z][offset + 2] = cache.getPageZ(id);
-        this.dataArrays[z][offset + 3] = 255;
+        this.dataArrays[z][offset + 3] = Math.min(255, renderCount - cache.pages[id].lastHits);
       }
     }
   }
 
 
-  update (cache) {
+  update (cache, renderCount) {
     const  root = this.nodes[this.nodes.length - 1];
     root.needsUpdate = true;
     root.visited = false;
@@ -216,7 +216,7 @@ export class IndirectionTable {
       }
     }
 
-    for( let l = 0; l <= this.maxLevel; ++l) this.setData(l, cache);
+    for( let l = 0; l <= this.maxLevel; ++l) this.setData(l, cache, renderCount);
     this.writeToTexture();
     if (this.canvas) this.writeToCanvas(cache);
 

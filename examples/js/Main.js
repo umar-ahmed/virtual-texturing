@@ -23,6 +23,7 @@ export class APP {
 
   onKeyDown(event) {
     switch(event.key) {
+      case "h": this.virtualTexture.debugLastHits = !this.virtualTexture.debugLastHits; break;
       case "l": this.virtualTexture.debugLevel = !this.virtualTexture.debugLevel; break;
       case "c": this.virtualTexture.debugCache = !this.virtualTexture.debugCache; break;
       case "i": console.log(this.virtualTexture.cache.getStatus()); break;
@@ -42,11 +43,10 @@ export class APP {
   }
 
   render() {
-    if (this.virtualTexture && this.renderer.renderCount > 0) {
+    ++this.renderer.renderCount;
+    if (this.virtualTexture) {
       this.virtualTexture.update(this.renderer, this.camera);
     }
-
-    ++this.renderer.renderCount;
     this.renderer.render(this.scene, this.camera);
   }
 

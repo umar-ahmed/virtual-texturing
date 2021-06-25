@@ -102,12 +102,7 @@ export class VirtualTexture {
       this.tileQueue.push(tile);
     }
 
-    update (renderer, camera) {
-      //if(!this.needsUpdate) return;
-      this.tileDetermination.update( renderer, camera );
-      this.usageTable.update( this.tileDetermination.data );
-
-      // find the items which are not cached yet
+    restoreOrEnqueueVisibleUncachedTiles() {
       for (let pageId in this.usageTable.table) {
         if (this.usageTable.table.hasOwnProperty(pageId)) {
           let pageX = PageId.getPageX(pageId);
@@ -160,11 +155,16 @@ export class VirtualTexture {
             }
           }
         }
-      } // for (var pageId in this.sparseTable.table) {
+      }
+    }
 
-      this.cache.update( renderer );
-      this.indirectionTable.update( this.cache );
-      this.usageTable.clear();
+    update (renderer, camera) {
+      //if(!this.needsUpdate) return;
+      this.tileDetermination.update( renderer, camera );
+      this.usageTable.update( this.tileDetermination.data );
+      this.restoreOrEnqueueVisibleUncachedTiles();
+      this.cache.update( renderer, this.usageTable );
+      this.indirectionTable.update( this.cache, renderer.renderCount );
     }
 
     addGeometry ( geometry ) {
@@ -210,6 +210,7 @@ export class VirtualTexture {
       uniforms.fMaxMipMapLevel.value = this.maxMipMapLevel;
       uniforms.bDebugCache.value = this.debugCache;
       uniforms.bDebugLevel.value = this.debugLevel;
+      uniforms.bDebugLastHits.value = this.debugLastHits;
 
     };
 };

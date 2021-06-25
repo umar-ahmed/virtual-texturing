@@ -119,7 +119,6 @@ export class Cache {
   restorePage (id) {
     const slot = this.cachedSlots[id];
     if (slot === undefined)  return -1;
-    // if (this.pages[slot].pageId !== id) console.error("ErrorOnId");
     this.freeSlots[slot] = false;
     return slot;
   }
@@ -154,11 +153,13 @@ export class Cache {
   // this function gets called when no slots are free
   freeSlot () {
     try {
-      let slot = undefined, zmax = -1;
+      let slot = undefined, lastHits = Number.MAX_VALUE, hits = Number.MAX_VALUE;
       for (let i = 0; i < this.pages.length; ++i) {
         const page = this.pages[i];
-        if ((!page.forced) && (page.z > zmax)) {
-          zmax = page.z;
+        if (page.forced) continue;
+        if (page.lastHits < lastHits || (page.lastHits == lastHits && page.hits < hits) ) {
+          lastHits = page.lastHits;
+          hits = page.hits;
           slot = i;
         }
       }
@@ -187,17 +188,17 @@ export class Cache {
 
     // get the next free page
     slot = this.getNextFreeSlot();
-    this.freeSlots[slot] = false;
-    this.cachedSlots[id] = slot;
-    const page = this.pages[slot];
 
     // if valid, remove it now, (otherwise handles leak)
+    const page = this.pages[slot];
     if (page.valid) {
       this.onPageDropped(page.pageId);
       delete this.cachedSlots[page.pageId];
     }
 
     // update slot
+    this.freeSlots[slot] = false;
+    this.cachedSlots[id] = slot;
     page.z = PageId.getPageZ(id);
     page.pageId = id;
     page.valid = true;
@@ -205,7 +206,12 @@ export class Cache {
     return slot;
   }
 
-  update(renderer) {
+  update(renderer, usageTable) {
+    this.updateTiles(renderer);
+    this.updatePages(usageTable, renderer.renderCount);
+  }
+
+  updateTiles(renderer) {
     const pos = new Vector2();
     for(const slot in this.newTiles) {
       const tile = this.newTiles[slot];
@@ -215,6 +221,18 @@ export class Cache {
       pos.set(x, y);
       renderer.copyTextureToTexture(pos, tile, this.texture);
       delete this.newTiles[slot];
+    }
+  }
+
+  updatePages(usageTable, renderCount) {
+    for (let pageId in usageTable.table) {
+      if (usageTable.table.hasOwnProperty(pageId)) {
+        const slot = this.cachedSlots[pageId];
+        if (slot !== undefined) {
+          this.pages[slot].lastHits = renderCount;
+          this.pages[slot].hits = usageTable.table[pageId];
+        }
+      }
     }
   }
 

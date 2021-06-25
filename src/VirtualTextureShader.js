@@ -16,14 +16,14 @@ const pars_fragment = [
   "uniform vec2 vNumTiles;",
   "uniform float fMaxMipMapLevel;",
 
-  "vec3 computeUvCoords( vec2 vUv ) {",
-    "vec3 uvl = vec3(texture2D( tCacheIndirection, vUv ).xyz);",
-    "float l = exp2(uvl.z);",
+  "vec4 computeUvCoords( vec2 vUv ) {",
+    "vec4 page = vec4(texture2D( tCacheIndirection, vUv ));",
+    "float l = exp2(page.z);",
     "vec2 inPageUv = fract(vUv * l);",
     "inPageUv = vPadding + inPageUv * (1.-2.*vPadding);",
     "inPageUv = clamp(inPageUv, vClamping, 1.-vClamping);",
-    "uvl.xy = (uvl.xy + inPageUv) / vNumTiles;",
-    "return uvl;",
+    "page.xy = (page.xy + inPageUv) / vNumTiles;",
+    "return page;",
   "}"
 ].join("\n");
 

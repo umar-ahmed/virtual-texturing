@@ -29,6 +29,7 @@ export class UsageTable {
   }
 
   update ( data ) {
+    this.clear();
     let i, r, g, b;
     const numPixels = data.length;
     for (i = 0; i < numPixels; i += 4) {

@@ -3,6 +3,7 @@ export const RenderWithVtShader = {
     "tDiffuse"     : { value: null },
     "bDebugLevel"     : { value: false },
     "bDebugCache"     : { value: false },
+    "bDebugLastHits"     : { value: false },
   },
   fragmentShader: [
     "#include <vt/pars_fragment>",
@@ -10,11 +11,13 @@ export const RenderWithVtShader = {
     "uniform sampler2D tDiffuse;",
     "uniform bool bDebugLevel;",
     "uniform bool bDebugCache;",
+    "uniform bool bDebugLastHits;",
     "void main() ",
     "{",
-      "vec3 uv = computeUvCoords( vUv );",
+      "vec4 uv = computeUvCoords( vUv );",
       "gl_FragColor = textureLod(tDiffuse, bDebugCache ? vUv : uv.xy, 0.);",
       "if (bDebugLevel) gl_FragColor.r = uv.z / fMaxMipMapLevel;",
+      "if (bDebugLastHits) gl_FragColor.g = 1. - (uv.w / 255.);",
     "}"
 
   ].join("\n"), // end of fragment shader
