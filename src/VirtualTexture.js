@@ -76,6 +76,8 @@ export class VirtualTexture {
     this.needsUpdate = false;
     this.debugCache = false;
     this.debugLevel = false;
+    this.debugLastHits = false;
+    this.textureMode = 0;
     this.init();
     this.setSize(window.innerWidth, window.innerHeight);
   }
@@ -205,12 +207,13 @@ export class VirtualTexture {
       uniforms[material.virtualTextureName].value = this.cache.texture;
       uniforms.tCacheIndirection.value = this.indirectionTable.texture;
       uniforms.vPadding.value = [ this.cache.padding/this.cache.realTileSize.x , this.cache.padding/this.cache.realTileSize.y ];
-      uniforms.vClamping.value = [ 0.5/this.cache.realTileSize.x , 0.5/this.cache.realTileSize.y ];
+      uniforms.vTileSize.value = [ this.cache.realTileSize.x , this.cache.realTileSize.y ];
       uniforms.vNumTiles.value = [ this.cache.tileCountPerSide.x , this.cache.tileCountPerSide.y ];
       uniforms.fMaxMipMapLevel.value = this.maxMipMapLevel;
       uniforms.bDebugCache.value = this.debugCache;
       uniforms.bDebugLevel.value = this.debugLevel;
       uniforms.bDebugLastHits.value = this.debugLastHits;
+      uniforms.iTextureMode.value = this.textureMode;
 
     };
 };

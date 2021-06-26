@@ -1,12 +1,38 @@
 import { Page } from './Page.js';
 import { PageId } from './PageId.js';
 import { Tile } from './Tile.js';
-import { DataTexture, RGBAFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, LinearFilter, Vector2 }
+import { DataTexture, RGBAFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, LinearMipMapLinearFilter, LinearFilter, Vector2 }
 from '../examples/jsm/three.module.js';
 
 export const StatusNotAvailable = 0;
 export const StatusAvailable = 1;
 export const StatusPendingDelete = 2;
+
+function createAnnotatedImageData(imageBitmap, x, y, z, l) {
+  return imageBitmap;
+	const canvas = document.createElement( "canvas" );
+	const context = canvas.getContext( "2d" );
+  canvas.width = imageBitmap.width;
+  canvas.height = imageBitmap.height;
+  context.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
+  context.textAlign = "center";
+  const scale = canvas.width / 64;
+  context.scale(scale, scale);
+  context.fillText(x+','+y, 32, 27);
+  context.fillText(z+'-'+l, 32, 37);
+  return context.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function resizeHalf( image ) {
+	const canvas = document.createElement( "canvas" );
+	const context = canvas.getContext( "2d" );
+  context.imageSmoothingEnabled = true;
+	canvas.width = Math.ceil(image.width / 2);
+  canvas.height = Math.ceil(image.height / 2);
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return createImageBitmap(canvas);
+}
+
 
 export class Cache {
 
@@ -54,10 +80,22 @@ export class Cache {
       ClampToEdgeWrapping,
       ClampToEdgeWrapping,
       LinearFilter,
-      LinearFilter
+      LinearMipMapLinearFilter
     );
     this.texture.generateMipmaps = false;
     this.texture.needsUpdate = true;
+    let width = this.width;
+    let height = this.height;
+    while ( width > 0 || height > 0 ) {
+      this.texture.mipmaps.push({
+        data: null,
+        width: width || 1,
+        height: height || 1
+      });
+      width >>= 1;
+      height >>= 1;
+    }
+    this.maxTileLevels = Math.ceil(Math.log2(this.realTileSize.x));
   }
 
   // if possible, move page to the free list
@@ -216,10 +254,21 @@ export class Cache {
     for(const slot in this.newTiles) {
       const tile = this.newTiles[slot];
       if (!tile.loaded) continue;
-      const x = this.realTileSize.x * this.getPageX(slot);
-      const y = this.realTileSize.y * this.getPageY(slot);
-      pos.set(x, y);
-      renderer.copyTextureToTexture(pos, tile, this.texture);
+      let x = this.realTileSize.x * this.getPageX(slot);
+      let y = this.realTileSize.y * this.getPageY(slot);
+      let level = 0;
+      const scope = this;
+      function buildMipMaps(bitmap) {
+        tile.image = createAnnotatedImageData(bitmap, tile.pageX, tile.pageY, tile.pageZ, level);
+        pos.set(x, y);
+        renderer.copyTextureToTexture(pos, tile, scope.texture, level);
+        x >>= 1;
+        y >>= 1;
+        ++level;
+        if (level <= scope.maxTileLevels)
+          resizeHalf(bitmap).then(buildMipMaps);
+      }
+      createImageBitmap(tile.image).then(buildMipMaps);
       delete this.newTiles[slot];
     }
   }
