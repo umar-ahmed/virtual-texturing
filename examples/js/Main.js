@@ -26,6 +26,7 @@ export class APP {
       case "h": this.virtualTexture.debugLastHits = !this.virtualTexture.debugLastHits; break;
       case "l": this.virtualTexture.debugLevel = !this.virtualTexture.debugLevel; break;
       case "c": this.virtualTexture.debugCache = !this.virtualTexture.debugCache; break;
+      case "k": this.virtualTexture.resetCache(); break;
       case "t":
         const textureModes = ["textureGrad", "textureLod","textureGrad0", "textureLod0", "texture"];
         this.virtualTexture.textureMode = (this.virtualTexture.textureMode +1) % textureModes.length;
