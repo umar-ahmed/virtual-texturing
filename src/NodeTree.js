@@ -14,7 +14,7 @@ export class NodeTree {
     this.children[2] = children2;
     this.children[3] = children3;
   }
-
+/*
   canMergeWith (node) {
     return node.value === this.value;
   }
@@ -37,5 +37,5 @@ export class NodeTree {
     }
 
     this.needsUpdate = result;
-  }
+  }*/
 };

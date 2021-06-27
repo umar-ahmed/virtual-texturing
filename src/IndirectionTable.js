@@ -211,7 +211,7 @@ export class IndirectionTable {
           node.children[3].visited = false;
 
           // merge cells
-          node.canMergeChildren();
+          // node.canMergeChildren();
         }
       }
     }
