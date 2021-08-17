@@ -54,11 +54,11 @@ export class VirtualTexture {
       this.cacheSize  // cacheSizeRoot
     );
 
-    var scope = this;
+    const scope = this;
     this.cache.pageDroppedCallback = function (pageX, pageY, pageZ) {
-      var value = scope.indirectionTable.getValueAt(pageX, pageY, pageZ);
-      scope.indirectionTable.setValueAt(pageX, pageY, pageZ, -1);
-      scope.indirectionTable.setChildren(pageX, pageY, pageZ, -1, value);
+      const slot = scope.indirectionTable.getSlot(pageX, pageY, pageZ);
+      scope.indirectionTable.setSlot(pageX, pageY, pageZ, -1);
+      scope.indirectionTable.setChildren(pageX, pageY, pageZ, -1, slot);
     };
 
     // init usage table
@@ -68,7 +68,7 @@ export class VirtualTexture {
       var status = scope.cache.getPageStatus(tile.id); // was parentId... not sure why
       if (status !== StatusAvailable) {
         var slot = scope.cache.cacheTile(tile, tile.id == 0);
-        scope.indirectionTable.setValueAt(tile.pageX, tile.pageY, tile.pageZ, slot);
+        scope.indirectionTable.setSlot(tile.pageX, tile.pageY, tile.pageZ, slot);
       }
       scope.needsUpdate = true;
     };
@@ -126,7 +126,7 @@ export class VirtualTexture {
           if (StatusPendingDelete === status) {
             slot = this.cache.restorePage(pageId);
             if (slot != -1) {
-              this.indirectionTable.setValueAt(pageX, pageY, pageZ, slot);
+              this.indirectionTable.setSlot(pageX, pageY, pageZ, slot);
               wasRestored = true;
             }
           }
@@ -167,6 +167,7 @@ export class VirtualTexture {
       this.restoreOrEnqueueVisibleUncachedTiles();
       this.cache.update( renderer, this.usageTable );
       this.indirectionTable.update( this.cache, renderer.renderCount );
+
     }
 
     addGeometry ( geometry ) {

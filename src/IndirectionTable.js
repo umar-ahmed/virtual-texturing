@@ -8,7 +8,6 @@
  * level 1 has (size>>1) * (size>>1)
  * level n-th has only 1 entry
 */
-import { NodeTree } from './NodeTree.js';
 import { DataTexture, RGBAIntegerFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, NearestFilter }
 from '../examples/jsm/three.module.js';
 
@@ -16,7 +15,7 @@ export class IndirectionTable {
   constructor(size) {
 
     // quad-tree representation
-    this.nodes = null;
+    this.slots = null;
     this.maxLevel = 0;
     this.size = size;
     this.offsets = null;
@@ -48,9 +47,9 @@ export class IndirectionTable {
       numElements >>= 2;
     }
 
-    this.nodes = [];
+    this.slots = [];
     for (i = 0; i < accumulator; ++i) {
-      this.nodes[i] = undefined;
+      this.slots[i] = -1;
     }
 
     for (i = 0; i < this.dataArrays.length; ++i) {
@@ -128,7 +127,7 @@ export class IndirectionTable {
     document.body.appendChild(this.canvas);
   }
 
-  setChildren (x, y, z, newValue, oldValue) {
+  setChildren (x, y, z, newSlot, oldSlot) {
     if (z == this.maxLevel) return;
     let size = 1;
     for (let iz = z + 1; iz <= this.maxLevel; ++iz) {
@@ -138,8 +137,8 @@ export class IndirectionTable {
 
       for (let iy = y; iy < y+size; ++iy)
         for (let ix = x; ix < x+size; ++ix)
-          if (this.getValueAt(ix, iy, iz) === oldValue)
-            this.setValueAt(ix, iy, iz, newValue);
+          if (this.getSlot(ix, iy, iz) === oldSlot)
+            this.setSlot(ix, iy, iz, newSlot);
     }
   }
 
@@ -164,7 +163,7 @@ export class IndirectionTable {
 
     for (let x = 0; x < width; ++x) {
       for (let y = 0; y < height; ++y) {
-        const id = this.getValueAt(x, y, z);
+        const id = this.getSlot(x, y, z);
         const offset = (width*y + x) * 4 ;
         this.dataArrays[z][offset    ] = cache.getPageX(id);
         this.dataArrays[z][offset + 1] = cache.getPageY(id);
@@ -176,9 +175,6 @@ export class IndirectionTable {
 
 
   update (cache, renderCount) {
-    const  root = this.nodes[this.nodes.length - 1];
-    root.needsUpdate = true;
-    root.visited = false;
     for (let z = 0; z < this.maxLevel; ++z) {
       const height = this.getHeight(z);
 
@@ -192,23 +188,19 @@ export class IndirectionTable {
           const lowerY = y << 1;
           const lowerZ = z + 1;
 
-          const node = this.getElementAt(x, y, z);
+          const slot = this.getSlot(x, y, z);
 
-          if (-1 === node.value) {
+          if (-1 === slot) {
             console.error("Not Found");
             continue;
           }
 
-          const pageZ = cache.getPageZ(node.value);
-          this.setUpdate(lowerX, lowerY, lowerZ, node.value, pageZ, cache);
-          this.setUpdate(lowerX + 1, lowerY, lowerZ, node.value, pageZ, cache);
-          this.setUpdate(lowerX, lowerY + 1, lowerZ, node.value, pageZ, cache);
-          this.setUpdate(lowerX + 1, lowerY + 1, lowerZ, node.value, pageZ, cache);
+          const pageZ = cache.getPageZ(slot);
+          this.setUpdate(lowerX, lowerY, lowerZ, slot, pageZ, cache);
+          this.setUpdate(lowerX + 1, lowerY, lowerZ, slot, pageZ, cache);
+          this.setUpdate(lowerX, lowerY + 1, lowerZ, slot, pageZ, cache);
+          this.setUpdate(lowerX + 1, lowerY + 1, lowerZ, slot, pageZ, cache);
 
-          node.children[0].visited = false;
-          node.children[1].visited = false;
-          node.children[2].visited = false;
-          node.children[3].visited = false;
 
           // merge cells
           // node.canMergeChildren();
@@ -226,34 +218,25 @@ export class IndirectionTable {
     return this.offsets[z] + y * this.getWidth(z) + x;
   }
 
-  getElementAt (x, y, z) {
-    return this.nodes[this.getEntryIndex(x, y, z)];
+  getSlot (x, y, z) {
+    return this.slots[this.getEntryIndex(x, y, z)];
   }
 
-  getValueAt (x, y, z) {
-    return this.getElementAt(x, y, z).value;
+  setSlot (x, y, z, slot) {
+    this.slots[this.getEntryIndex(x, y, z)] = slot;
   }
 
-  setValueAt (x, y, z, value) {
-    this.getElementAt(x, y, z).value = value;
-  }
 
-  setUpdateClear(x, y, z, newValue) {
-    const child = new NodeTree(newValue);
-    this.nodes[this.getEntryIndex(x, y, z)] = child;
-    return child;
-  }
-
-  setUpdate(x, y, z, newValue, pageZ, cache) {
-    const value = this.getValueAt(x, y, z);
-    const isEmpty = ((-1) === value);
-    if (isEmpty || (cache.getPageZ(value) < pageZ)) {
-      this.setValueAt(x, y, z, newValue);
+  setUpdate(x, y, z, newSlot, pageZ, cache) {
+    const slot = this.getSlot(x, y, z);
+    const isEmpty = ((-1) === slot);
+    if (isEmpty || (cache.getPageZ(slot) < pageZ)) {
+      this.setSlot(x, y, z, newSlot);
     }
   }
 
   clear (id) {
-    this.nodes[this.nodes.length - 1] = new NodeTree(id);
+    this.slots[this.slots.length - 1] = id;
     for (let z = 0; z < this.maxLevel; ++z) {
       for (let y = 0; y < this.getHeight(z); ++y) {
         for (let x = 0; x < this.getWidth(z); ++x) {
@@ -263,12 +246,11 @@ export class IndirectionTable {
           let Y = y << 1;
           let Z = z+1;
 
-          let node = this.getElementAt(x, y, z);
-          let a = this.setUpdateClear(X    , Y    , Z, node.value);
-          let b = this.setUpdateClear(X + 1, Y    , Z, node.value);
-          let c = this.setUpdateClear(X    , Y + 1, Z, node.value);
-          let d = this.setUpdateClear(X + 1, Y + 1, Z, node.value);
-          node.setChildren(a, b, c, d);
+          const slot = this.getSlot(x, y, z);
+          this.setSlot(X    , Y    , Z, slot);
+          this.setSlot(X + 1, Y    , Z, slot);
+          this.setSlot(X    , Y + 1, Z, slot);
+          this.setSlot(X + 1, Y + 1, Z, slot);
         }
       }
     }

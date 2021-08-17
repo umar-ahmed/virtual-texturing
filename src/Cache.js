@@ -9,7 +9,7 @@ export const StatusAvailable = 1;
 export const StatusPendingDelete = 2;
 
 function createAnnotatedImageData(imageBitmap, x, y, z, l) {
-  return imageBitmap;
+  //return imageBitmap;
 	const canvas = document.createElement( "canvas" );
 	const context = canvas.getContext( "2d" );
   canvas.width = imageBitmap.width;
@@ -246,10 +246,11 @@ export class Cache {
 
   update(renderer, usageTable) {
     this.updateTiles(renderer);
-    this.updatePages(usageTable, renderer.renderCount);
+    this.updateUsage(usageTable, renderer.renderCount);
   }
 
   updateTiles(renderer) {
+    const scope = this;
     const pos = new Vector2();
     for(const slot in this.newTiles) {
       const tile = this.newTiles[slot];
@@ -257,7 +258,6 @@ export class Cache {
       let x = this.realTileSize.x * this.getPageX(slot);
       let y = this.realTileSize.y * this.getPageY(slot);
       let level = 0;
-      const scope = this;
       function buildMipMaps(bitmap) {
         tile.image = createAnnotatedImageData(bitmap, tile.pageX, tile.pageY, tile.pageZ, level);
         pos.set(x, y);
@@ -273,7 +273,7 @@ export class Cache {
     }
   }
 
-  updatePages(usageTable, renderCount) {
+  updateUsage(usageTable, renderCount) {
     for (let pageId in usageTable.table) {
       if (usageTable.table.hasOwnProperty(pageId)) {
         const slot = this.cachedSlots[pageId];
