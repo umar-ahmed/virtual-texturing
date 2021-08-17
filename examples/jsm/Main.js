@@ -107,7 +107,7 @@ export class APP {
   load(geometry, config) {
 
     this.virtualTexture = new VirtualTexture(config);
-    this.material = this.virtualTexture.createMaterial(RenderWithVtShader, 'tDiffuse');
+    this.material = this.virtualTexture.createMaterial(RenderWithVtShader, 'vt');
     const mesh = new Mesh(geometry, this.material);
     this.scene.add(mesh);
     this.virtualTexture.addGeometry(geometry);

@@ -205,12 +205,13 @@ export class VirtualTexture {
     updateUniforms ( material ) {
 
       const uniforms = material.uniforms;
-      uniforms[material.virtualTextureName].value = this.cache.texture;
-      uniforms.tCacheIndirection.value = this.indirectionTable.texture;
-      uniforms.vPadding.value = [ this.cache.padding/this.cache.realTileSize.x , this.cache.padding/this.cache.realTileSize.y ];
-      uniforms.vTileSize.value = [ this.cache.realTileSize.x , this.cache.realTileSize.y ];
-      uniforms.vNumTiles.value = [ this.cache.tileCountPerSide.x , this.cache.tileCountPerSide.y ];
-      uniforms.fMaxMipMapLevel.value = this.maxMipMapLevel;
+      const vt = uniforms[material.virtualTextureName].value;
+      vt.texture = this.cache.texture;
+      vt.cacheIndirection = this.indirectionTable.texture;
+      vt.padding = [ this.cache.padding/this.cache.realTileSize.x , this.cache.padding/this.cache.realTileSize.y ];
+      vt.tileSize = [ this.cache.realTileSize.x , this.cache.realTileSize.y ];
+      vt.numTiles = [ this.cache.tileCountPerSide.x , this.cache.tileCountPerSide.y ];
+      vt.maxMipMapLevel = this.maxMipMapLevel;
       uniforms.bDebugCache.value = this.debugCache;
       uniforms.bDebugLevel.value = this.debugLevel;
       uniforms.bDebugLastHits.value = this.debugLastHits;
