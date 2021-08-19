@@ -5,7 +5,7 @@
 import { RenderWithVtShader } from './RenderWithVtShader.js';
 import { VirtualTexture } from '../../src/VirtualTexture.js';
 import { Clock, WebGLRenderer, Scene, PerspectiveCamera, Mesh } from '../jsm/three.module.js';
-import { FlyControls } from '../jsm/FlyControls.js';
+import { MapControls } from '../jsm/OrbitControls.js';
 import { WEBGL } from '../jsm/WebGL.js';
 
 export class APP {
@@ -92,13 +92,8 @@ export class APP {
 
   /**********************************************************************************/
 
-    this.controls = new FlyControls(this.camera, this.renderer.domElement);
-    this.controls.movementSpeed = 50;
-    this.controls.domElement = this.renderer.domElement;
-    this.controls.rollSpeed = Math.PI / 12;
-    this.controls.autoForward = false;
-    this.controls.dragToLook = true;
-
+    this.controls = new MapControls(this.camera, this.renderer.domElement);
+    
     window.addEventListener('resize', this.resize.bind(this), false);
     window.addEventListener('keydown', this.onKeyDown.bind(this), false);
     return true;
