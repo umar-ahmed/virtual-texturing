@@ -1,10 +1,11 @@
 import { UniformsLib, ShaderChunk } from '../examples/jsm/three.module.js';
 
 const uniforms = {
-  "fVirtualTextureSize":  { value: [ 0, 0 ] },
-  "fMaximumMipMapLevel":  {  value: 0.0 },
-  "fTileCount":        { value: [ 0, 0 ] },
-  "fVirtualTextureId": { value: 255.0 }
+  "vt_size":  { value: [ 0, 0 ] },
+  "vt_minMipMapLevel":  {  value: 0.0 },
+  "vt_maxMipMapLevel":  {  value: 0.0 },
+  "vt_tileCount":        { value: [ 0, 0 ] },
+  "vt_id": { value: 255.0 }
 };
 
 const pars_vertex = [
@@ -19,10 +20,11 @@ const vertex = [
 
 const pars_fragment = [
 
-  "uniform vec2 fVirtualTextureSize;",
-  "uniform float fMaximumMipMapLevel;",
-  "uniform float fVirtualTextureId;",
-  "uniform float fTileCount;",
+  "uniform vec2 vt_size;",
+  "uniform float vt_minMipMapLevel;",
+  "uniform float vt_maxMipMapLevel;",
+  "uniform float vt_id;",
+  "uniform float vt_tileCount;",
 
   "varying vec2 vUv;",
 
@@ -37,12 +39,12 @@ const pars_fragment = [
 ].join("\n");
 
 const fragment = [
-  "float mipLevel  = floor( MipLevel( vUv, fVirtualTextureSize ));",
-  "mipLevel = clamp(mipLevel, 0.0, fMaximumMipMapLevel);",
-  "float size = fTileCount * exp2(-mipLevel);",
+  "float mipLevel  = floor( MipLevel( vUv, vt_size ));",
+  "mipLevel = clamp(mipLevel, vt_minMipMapLevel, vt_maxMipMapLevel);",
+  "float size = vt_tileCount * exp2(-mipLevel);",
   "vec2 id = floor( vUv.xy * size );",
   "id = clamp(id, 0., size-1.);",
-  "gl_FragColor = vec4(id, mipLevel, fVirtualTextureId)/255.0;"
+  "gl_FragColor = vec4(id, mipLevel, vt_id)/255.0;"
 ].join("\n");
 
 

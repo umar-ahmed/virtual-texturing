@@ -20,17 +20,19 @@ export class VirtualTexture {
       return;
     }
 
+    this.minMipMapLevel = params.minMipMapLevel;
     this.maxMipMapLevel = params.maxMipMapLevel;
     this.tileSize = params.tileSize;
     this.tilePadding = params.tilePadding;
     this.cacheSize = params.cacheSize;
-    this.ratio = params.ratio;
+    this.tileDeterminationRatio = params.tileDeterminationRatio;
     this.useProgressiveLoading = true;
 
     // init tile queue
     this.tileQueue = new TileQueue(2);
     this.tileQueue.getTilePath = params.getTilePath;
 
+//    var lengthPerSide = this.tileSize * (1 << this.maxMipMapLevel);
     var lengthPerSide = 1 << Math.log(this.tileSize) / Math.log(2) + this.maxMipMapLevel;
     this.size = lengthPerSide;
 
@@ -43,7 +45,7 @@ export class VirtualTexture {
 
     // init page table
     var cacheSize = this.size / this.tileSize;
-    this.indirectionTable = new IndirectionTable(cacheSize);
+    this.indirectionTable = new IndirectionTable(cacheSize, this.minMipMapLevel);
     console.log("Indirection table size: " + cacheSize);
 
     // init page cache
@@ -85,8 +87,8 @@ export class VirtualTexture {
   setSize( width, height ) {
 
     this.tileDetermination.setSize(
-      Math.floor( width * this.ratio ),
-      Math.floor( height * this.ratio )
+      Math.floor( width * this.tileDeterminationRatio ),
+      Math.floor( height * this.tileDeterminationRatio )
     );
 
   }
@@ -97,11 +99,17 @@ export class VirtualTexture {
     }
 
     resetCache () {
-      var id = PageId.create(0, 0, 0);
       this.cache.clear();
-      this.indirectionTable.clear(id);
-      var tile = new Tile(id, Number.MAX_VALUE);
-      this.tileQueue.push(tile);
+      this.indirectionTable.clear();
+
+      const z = this.minMipMapLevel;
+      for (let y = 0; y < this.indirectionTable.getHeight(z); ++y) {
+        for (let x = 0; x < this.indirectionTable.getWidth(z); ++x) {
+          const id = PageId.create(x, y, z);
+          const tile = new Tile(id, Number.MAX_VALUE);
+          this.tileQueue.push(tile);
+        }
+      }
     }
 
     restoreOrEnqueueVisibleUncachedTiles() {
@@ -174,9 +182,10 @@ export class VirtualTexture {
 
       const uniforms = UniformsUtils.clone( VisibleTileShader.uniforms );
 
-      uniforms.fVirtualTextureSize.value = [ this.size, this.size ];
-      uniforms.fMaximumMipMapLevel.value = this.maxMipMapLevel;
-      uniforms.fTileCount.value = this.tileCount;
+      uniforms.vt_size.value = [ this.size, this.size ];
+      uniforms.vt_minMipMapLevel.value = this.minMipMapLevel;
+      uniforms.vt_maxMipMapLevel.value = this.maxMipMapLevel;
+      uniforms.vt_tileCount.value = this.tileCount;
 
       const parameters = {
         uniforms: uniforms,

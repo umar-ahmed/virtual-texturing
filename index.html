@@ -30,7 +30,7 @@
           tilePadding: 4,
           tileClamp: 0.5,
           cacheSize: 600,
-          ratio: 0.125,
+          tileDeterminationRatio: 0.125,
           getTilePath: function(tile) {
             const directory = '/examples/models/terrain/tiles/diffuse/';
             const level = tile.pageZ;
@@ -40,17 +40,40 @@
           }
         },
         {
-          maxMipMapLevel: 8,
+          maxMipMapLevel: 9,
+          minMipMapLevel: 2,
           tileSize: 256,
           tilePadding: 0,
           tileClamp: 0.5,
           cacheSize: 4000,//600,
-          ratio: 0.125,
+          tileDeterminationRatio: 0.125,
           getTilePath: function(tile) {
             let url = 'https://wxs.ign.fr/3ht7xcw6f7nciopo16etuqp2/geoportail/wmts?LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={Z}&TILEROW={Y}&TILECOL={X}';
-            url = url.replace('{X}', tile.pageX);
-            url = url.replace('{Y}', tile.pageY);
-            url = url.replace('{Z}', tile.pageZ);
+            url = url.replace('{X}', tile.pageX+(15<<(tile.pageZ-1)));
+            url = url.replace('{Y}', tile.pageY+(10<<(tile.pageZ-1)));
+            url = url.replace('{Z}', tile.pageZ+4);
+            return url;
+          }
+        },
+        {
+          maxMipMapLevel: 6,
+          minMipMapLevel: 0,
+          tileSize: 256,
+          tilePadding: 0,
+          tileClamp: 0.5,
+          cacheSize: 4000,//600,
+          tileDeterminationRatio: 0.125,
+          getTilePath: function(tile) {
+            const maxMipMapLevel = 6;
+            const tileSize = 256;
+            const width = 8950;
+            const height = 9400;
+            const S = tileSize << (maxMipMapLevel - tile.pageZ);
+            const W = Math.ceil(width/S);
+            const H = Math.ceil(height/S);
+            if ( tile.pageX >= W || tile.pageY >= H ) return null;
+            let url = 'https://wxs.ign.fr/x7yv499pbcguxhhxh8syehwe/iipsrv.fcgi?FIF=DEMAT.PVA/3025-0211/IGNF_PVA_1-0__1959-08-25__C3025-0211_1959_CDP1461_3601.jp2&LYR=20&JTL={JTL}';
+            url = url.replace('{JTL}', tile.pageZ+','+(tile.pageX+W*tile.pageY));
             return url;
           }
         }
@@ -58,7 +81,7 @@
 
       var geometry = new PlaneGeometry(100, 100, 100);
 
-      app.load(geometry, config[1]);
+      app.load(geometry, config[2]);
 
       app.run();
 

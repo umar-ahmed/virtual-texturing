@@ -28,6 +28,7 @@ export class TileQueue {
       const scope = this;
       const tile = this.pop();
       const filePath = this.getTilePath(tile);
+      if (!filePath) return scope.process();
 
       const image = new Image();
       image.crossOrigin = 'Anonymous';

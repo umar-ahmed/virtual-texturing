@@ -11,11 +11,14 @@
 import { DataTexture, RGBAIntegerFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, NearestFilter }
 from '../examples/jsm/three.module.js';
 
+import { PageId } from './PageId.js'
+
 export class IndirectionTable {
-  constructor(size) {
+  constructor(size, minlevel) {
 
     // quad-tree representation
     this.slots = null;
+    this.minLevel = minlevel;
     this.maxLevel = 0;
     this.size = size;
     this.offsets = null;
@@ -235,22 +238,13 @@ export class IndirectionTable {
     }
   }
 
-  clear (id) {
-    this.slots[this.slots.length - 1] = id;
-    for (let z = 0; z < this.maxLevel; ++z) {
+  clear () {
+    for (let z = this.minLevel; z < this.maxLevel; ++z) {
       for (let y = 0; y < this.getHeight(z); ++y) {
         for (let x = 0; x < this.getWidth(z); ++x) {
-
-          // update corresponding elements
-          let X = x << 1;
-          let Y = y << 1;
-          let Z = z+1;
-
-          const slot = this.getSlot(x, y, z);
-          this.setSlot(X    , Y    , Z, slot);
-          this.setSlot(X + 1, Y    , Z, slot);
-          this.setSlot(X    , Y + 1, Z, slot);
-          this.setSlot(X + 1, Y + 1, Z, slot);
+          const dz = z - this.minLevel;
+          var id = PageId.create(x >> dz, y >> dz, this.minLevel);
+          this.setSlot(x, y, z, id);
         }
       }
     }
