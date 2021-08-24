@@ -28,7 +28,7 @@ export class APP {
       case "c": this.virtualTexture.debugCache = !this.virtualTexture.debugCache; break;
       case "k": this.virtualTexture.resetCache(); break;
       case "t":
-        const textureModes = ["textureGrad", "textureLod","textureGrad0", "textureLod0", "texture"];
+        const textureModes = ["textureGrad", "textureLod", "texture"];//, "textureGrad0", "textureLod0"];
         this.virtualTexture.textureMode = (this.virtualTexture.textureMode +1) % textureModes.length;
         console.log(textureModes[this.virtualTexture.textureMode]);
         break;
@@ -92,6 +92,7 @@ export class APP {
   /**********************************************************************************/
 
     this.controls = new MapControls(this.camera, this.renderer.domElement);
+    this.controls.screenSpacePanning = true;
 
     window.addEventListener('resize', this.resize.bind(this), false);
     window.addEventListener('keydown', this.onKeyDown.bind(this), false);
