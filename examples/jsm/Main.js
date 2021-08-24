@@ -76,7 +76,6 @@ export class APP {
 
     var width = window.innerWidth;
     var height = window.innerHeight;
-    console.log("width:" + width + " height:" + height);
 
     this.renderer = new WebGLRenderer();
     this.renderer.renderCount = 0;
@@ -93,7 +92,7 @@ export class APP {
   /**********************************************************************************/
 
     this.controls = new MapControls(this.camera, this.renderer.domElement);
-    
+
     window.addEventListener('resize', this.resize.bind(this), false);
     window.addEventListener('keydown', this.onKeyDown.bind(this), false);
     return true;

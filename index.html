@@ -26,7 +26,7 @@
       var config = [
         {
           maxMipMapLevel: 4,
-          tileSize: 128,
+          tileSize: [128,128],
           tilePadding: 4,
           tileClamp: 0.5,
           cacheSize: 600,
@@ -42,7 +42,7 @@
         {
           maxMipMapLevel: 9,
           minMipMapLevel: 2,
-          tileSize: 256,
+          tileSize: [256,256],
           tilePadding: 0,
           tileClamp: 0.5,
           cacheSize: 4000,//600,
@@ -56,34 +56,60 @@
           }
         },
         {
-          maxMipMapLevel: 6,
           minMipMapLevel: 0,
-          tileSize: 256,
+          iip: 'https://wxs.ign.fr/x7yv499pbcguxhhxh8syehwe/iipsrv.fcgi',
+          id: 'DEMAT.PVA/0317-0101/IGNF_PVA_1-0__1944__C0317-0101_1944_106G2481_4026.jp2',
+          img_url: '{IIP}?FIF={ID}&LYR=20&JTL={JTL}',
+          info_url: '{IIP}?FIF={ID}&obj=IIP,1.0&obj=Max-size&obj=Tile-size&obj=Resolution-number',
           tilePadding: 0,
           tileClamp: 0.5,
           cacheSize: 4000,//600,
           tileDeterminationRatio: 0.125,
-          getTilePath: function(tile) {
-            const maxMipMapLevel = 6;
-            const tileSize = 256;
-            const width = 8950;
-            const height = 9400;
-            const S = tileSize << (maxMipMapLevel - tile.pageZ);
-            const W = Math.ceil(width/S);
-            const H = Math.ceil(height/S);
-            if ( tile.pageX >= W || tile.pageY >= H ) return null;
-            let url = 'https://wxs.ign.fr/x7yv499pbcguxhhxh8syehwe/iipsrv.fcgi?FIF=DEMAT.PVA/3025-0211/IGNF_PVA_1-0__1959-08-25__C3025-0211_1959_CDP1461_3601.jp2&LYR=20&JTL={JTL}';
-            url = url.replace('{JTL}', tile.pageZ+','+(tile.pageX+W*tile.pageY));
-            return url;
-          }
+          init: function(info) {
+            const scope = this;
+            const info_url = this.info_url.replace('{IIP}', this.iip).replace('{ID}', this.id);
+            this.url = this.img_url.replace('{IIP}', this.iip).replace('{ID}', this.id);
+            return fetch(info_url)
+            .then((response) => response.text())
+            .then((txt) => Object.fromEntries(txt.split(/\r?\n/)
+              .map((line) => line.split(':'))
+              .filter((line) => line.length == 2)
+              .map((entry) => {
+                const values = entry[1].split(/\s+/).map((v) => parseInt(v, 10));
+                return [entry[0], values];
+              })
+            ))
+            .then((info) => {
+              scope.maxMipMapLevel = info['Resolution-number']-1;
+              scope.tileSize = info['Tile-size'];
+              scope.size = info['Max-size'];
+              scope.numTiles = [];
+              for(let z=0; z<=scope.maxMipMapLevel; ++z) {
+                const TW = scope.tileSize[0] << (scope.maxMipMapLevel - z);
+                const TH = scope.tileSize[1] << (scope.maxMipMapLevel - z);
+                const W = Math.ceil(scope.size[0]/TW);
+                const H = Math.ceil(scope.size[1]/TH);
+                scope.numTiles[z] = [W, H];
+              }
+              scope.getTilePath = function(tile) {
+                const W = scope.numTiles[tile.pageZ][0];
+                const H = scope.numTiles[tile.pageZ][1];
+                if ( tile.pageX >= W || tile.pageY >= H ) return null;
+                return scope.url.replace('{JTL}', tile.pageZ+','+(tile.pageX+W*tile.pageY));
+              };
+              console.log(scope);
+              return scope;
+            });
+          },
         }
       ];
 
       var geometry = new PlaneGeometry(100, 100, 100);
 
-      app.load(geometry, config[2]);
-
-      app.run();
+      config[2].init().then( (conf) => {
+        app.load(geometry, conf);
+        app.run();
+      });
 
     </script>
   </body>

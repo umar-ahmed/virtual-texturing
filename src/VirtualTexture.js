@@ -32,21 +32,18 @@ export class VirtualTexture {
     this.tileQueue = new TileQueue(2);
     this.tileQueue.getTilePath = params.getTilePath;
 
-//    var lengthPerSide = this.tileSize * (1 << this.maxMipMapLevel);
-    var lengthPerSide = 1 << Math.log(this.tileSize) / Math.log(2) + this.maxMipMapLevel;
-    this.size = lengthPerSide;
+    this.tileCount = 1 << this.maxMipMapLevel;
+    this.size = [ this.tileSize[0] * this.tileCount, this.tileSize[1] * this.tileCount];
 
-    console.log('Virtual Texture: width: ' + this.size + ' height: ' + this.size);
+    console.log('Virtual Texture: width: ' + this.size[0] + ' height: ' + this.size[1]);
 
-    this.tileCount = this.size / this.tileSize;
 
     // init tile determination program
     this.tileDetermination = new TileDetermination();
 
     // init page table
-    var cacheSize = this.size / this.tileSize;
-    this.indirectionTable = new IndirectionTable(cacheSize, this.minMipMapLevel);
-    console.log("Indirection table size: " + cacheSize);
+    this.indirectionTable = new IndirectionTable(this.tileCount, this.minMipMapLevel);
+    console.log("Indirection table size: " + this.tileCount);
 
     // init page cache
     this.cache = new Cache(
@@ -182,7 +179,7 @@ export class VirtualTexture {
 
       const uniforms = UniformsUtils.clone( VisibleTileShader.uniforms );
 
-      uniforms.vt_size.value = [ this.size, this.size ];
+      uniforms.vt_size.value = this.size;
       uniforms.vt_minMipMapLevel.value = this.minMipMapLevel;
       uniforms.vt_maxMipMapLevel.value = this.maxMipMapLevel;
       uniforms.vt_tileCount.value = this.tileCount;

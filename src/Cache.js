@@ -38,8 +38,8 @@ export class Cache {
 
   constructor(tileSize, padding, width, height) {
     this.realTileSize = {
-      x: tileSize + (2 * padding),
-      y: tileSize + (2 * padding)
+      x: tileSize[0] + (2 * padding),
+      y: tileSize[1] + (2 * padding)
     };
 
     this.tileCountPerSide = {
@@ -50,7 +50,6 @@ export class Cache {
     this.width = this.tileCountPerSide.x * this.realTileSize.x;
     this.height = this.tileCountPerSide.y * this.realTileSize.y;
 
-    this.usablePageSize = tileSize;
     this.padding = padding;
 
     this.texture = null;
