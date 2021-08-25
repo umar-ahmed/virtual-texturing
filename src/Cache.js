@@ -27,8 +27,8 @@ function resizeHalf( image ) {
 	const canvas = document.createElement( "canvas" );
 	const context = canvas.getContext( "2d" );
   context.imageSmoothingEnabled = true;
-	canvas.width = Math.ceil(image.width / 2);
-  canvas.height = Math.ceil(image.height / 2);
+	canvas.width = (image.width >> 1) || 1;
+  canvas.height = (image.height >> 1) || 1;
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
   return createImageBitmap(canvas);
 }
@@ -83,6 +83,7 @@ export class Cache {
     );
     this.texture.generateMipmaps = false;
     this.texture.needsUpdate = true;
+    this.maxTileLevels = Math.floor(Math.log2(Math.max(this.realTileSize.x, this.realTileSize.y)));
     let width = this.width;
     let height = this.height;
     while ( width > 0 || height > 0 ) {
@@ -94,7 +95,6 @@ export class Cache {
       width >>= 1;
       height >>= 1;
     }
-    this.maxTileLevels = Math.ceil(Math.log2(this.realTileSize.x));
   }
 
   // if possible, move page to the free list

@@ -42,7 +42,7 @@ export class VirtualTexture {
     this.tileDetermination = new TileDetermination();
 
     // init page table
-    this.indirectionTable = new IndirectionTable(this.tileCount, this.minMipMapLevel);
+    this.indirectionTable = new IndirectionTable(this.minMipMapLevel, this.maxMipMapLevel);
     console.log("Indirection table size: " + this.tileCount);
 
     // init page cache
@@ -100,8 +100,9 @@ export class VirtualTexture {
       this.indirectionTable.clear();
 
       const z = this.minMipMapLevel;
-      for (let y = 0; y < this.indirectionTable.getHeight(z); ++y) {
-        for (let x = 0; x < this.indirectionTable.getWidth(z); ++x) {
+      const size = 1 << z;
+      for (let y = 0; y < size; ++y) {
+        for (let x = 0; x < size; ++x) {
           const id = PageId.create(x, y, z);
           const tile = new Tile(id, Number.MAX_VALUE);
           this.tileQueue.push(tile);
@@ -115,10 +116,9 @@ export class VirtualTexture {
           let pageX = PageId.getPageX(pageId);
           let pageY = PageId.getPageY(pageId);
           let pageZ = PageId.getPageZ(pageId);
-          let width = this.indirectionTable.getWidth(pageZ);
-          let height = this.indirectionTable.getHeight(pageZ);
+          let size = 1 << pageZ;
 
-          if (pageX >= width || pageY >= height || pageX < 0 || pageY < 0) {
+          if (pageX >= size || pageY >= size || pageX < 0 || pageY < 0) {
             // FIXME: Pending bug
             console.error('Out of bounds error:\npageX: ' + pageX + '\npageY: ' + pageY + '\npageZ: ' + pageZ);
             continue;

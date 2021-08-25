@@ -14,13 +14,13 @@ from '../examples/jsm/three.module.js';
 import { PageId } from './PageId.js'
 
 export class IndirectionTable {
-  constructor(size, minlevel) {
+  constructor(minlevel, maxLevel) {
 
     // quad-tree representation
     this.slots = null;
     this.minLevel = minlevel;
-    this.maxLevel = 0;
-    this.size = size;
+    this.maxLevel = maxLevel;
+    this.size = 1 << maxLevel;
     this.offsets = null;
 
     // graphics and webgl stuff
@@ -31,17 +31,16 @@ export class IndirectionTable {
     this.canvas = null;
     this.imageData = null;
 
-    this.init(size);
+    this.init();
   }
 
-  init (size) {
-    this.maxLevel = Math.floor(Math.log(size) / Math.log(2));
+  init () {
     this.offsets = new Array(this.maxLevel + 1);
     this.dataArrays = new Array(this.maxLevel + 1);
 
     let i, j, offset;
     let accumulator = 0;
-    let numElements = size * size;
+    let numElements = this.size * this.size;
     for (i = this.maxLevel; i >= 0; --i) {
 
       this.offsets[i] = accumulator;
@@ -64,11 +63,10 @@ export class IndirectionTable {
         this.dataArrays[i][j + 3] = 255.0;
       }
     }
-
     this.texture = new DataTexture(
       this.dataArrays[this.maxLevel],
-      size, //width
-      size, //height
+      this.size, //width
+      this.size, //height
       RGBAIntegerFormat,
       UnsignedByteType,
       UVMapping,
@@ -161,13 +159,11 @@ export class IndirectionTable {
   }
 
   setData(z, cache, renderCount) {
-    const width = this.getWidth(z);
-    const height = this.getHeight(z);
-
-    for (let x = 0; x < width; ++x) {
-      for (let y = 0; y < height; ++y) {
+    const size = 1 << z;
+    for (let x = 0; x < size; ++x) {
+      for (let y = 0; y <size; ++y) {
         const id = this.getSlot(x, y, z);
-        const offset = (width*y + x) * 4 ;
+        const offset = (size*y + x) * 4 ;
         this.dataArrays[z][offset    ] = cache.getPageX(id);
         this.dataArrays[z][offset + 1] = cache.getPageY(id);
         this.dataArrays[z][offset + 2] = cache.getPageZ(id);
@@ -179,12 +175,11 @@ export class IndirectionTable {
 
   update (cache, renderCount) {
     for (let z = 0; z < this.maxLevel; ++z) {
-      const height = this.getHeight(z);
+      const size = 1 << z;
 
-      for (let y = 0; y < height; ++y) {
-        const width = this.getWidth(z);
+      for (let y = 0; y < size; ++y) {
 
-        for (let x = 0; x < width; ++x) {
+        for (let x = 0; x < size; ++x) {
 
           // update corresponding elements
           const lowerX = x << 1;
@@ -218,7 +213,7 @@ export class IndirectionTable {
   }
 
   getEntryIndex (x, y, z) {
-    return this.offsets[z] + y * this.getWidth(z) + x;
+    return this.offsets[z] + y * (1 << z) + x;
   }
 
   getSlot (x, y, z) {
@@ -239,22 +234,15 @@ export class IndirectionTable {
   }
 
   clear () {
-    for (let z = this.minLevel; z < this.maxLevel; ++z) {
-      for (let y = 0; y < this.getHeight(z); ++y) {
-        for (let x = 0; x < this.getWidth(z); ++x) {
+    for (let z = 0; z <= this.maxLevel; ++z) {
+      const size = 1 << z;
+      for (let y = 0; y < size; ++y) {
+        for (let x = 0; x < size; ++x) {
           const dz = z - this.minLevel;
-          var id = PageId.create(x >> dz, y >> dz, this.minLevel);
+          var id = dz < 0 ? -1 : PageId.create(x >> dz, y >> dz, this.minLevel);
           this.setSlot(x, y, z, id);
         }
       }
     }
-  }
-
-  getWidth (z) {
-    return 1 << z;
-  }
-
-  getHeight (z) {
-    return 1 << z;
   }
 };
