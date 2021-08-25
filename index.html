@@ -101,6 +101,62 @@
               return scope;
             });
           },
+        },
+        {
+          minMipMapLevel: 0,
+          iiif: 'http://134.158.75.67:8081',
+          id: 'Niepce%2FGros%2F2003.15.676.15P01RB.jp2',
+          img_url: '{IIIF}/{ID}/{region}/{size}/0/default.jpg',
+          info_url: '{IIIF}/{ID}/info.json',
+          tilePadding: 0,
+          tileClamp: 0.5,
+          tileSize: [128, 128],
+          cacheSize: 5000,//600,
+          tileDeterminationRatio: 0.125,
+          init: function(info) {
+            const scope = this;
+            const info_url = this.info_url
+            .replace('{IIIF}', this.iiif)
+            .replace('{ID}', this.id);
+            this.url = this.img_url
+            .replace('{IIIF}', this.iiif)
+            .replace('{ID}', this.id)
+            return fetch(info_url)
+            .then((response) => response.json())
+            .then((info) => {
+              const tileCount = Math.ceil(Math.max(info.width/scope.tileSize[0], info.height/scope.tileSize[1]));
+              scope.maxMipMapLevel = Math.ceil(Math.log2(tileCount));
+              scope.size = [ info.width, info.height ];
+              scope.numTiles = [];
+              for(let z=0; z<=scope.maxMipMapLevel; ++z) {
+                const TW = scope.tileSize[0] << (scope.maxMipMapLevel - z);
+                const TH = scope.tileSize[1] << (scope.maxMipMapLevel - z);
+                const W = Math.ceil(scope.size[0]/TW);
+                const H = Math.ceil(scope.size[1]/TH);
+                scope.numTiles[z] = [W, H];
+              }
+              scope.getTilePath = function(tile) {
+                const W = scope.numTiles[tile.pageZ][0];
+                const H = scope.numTiles[tile.pageZ][1];
+                if ( tile.pageX >= W || tile.pageY >= H ) return null;
+                const z = scope.maxMipMapLevel - tile.pageZ;
+                const w = scope.tileSize[0] << z;
+                const h = scope.tileSize[1] << z;
+                const x = tile.pageX * w;
+                const y = tile.pageY * h;
+                const w0 = Math.min(w, scope.size[0] - x);
+                const h0 = Math.min(w, scope.size[1] - y);
+                const w1 = w0 >> z;
+                const h1 = h0 >> z;
+
+                return scope.url
+                .replace('{region}', [x,y,w0,h0].join(','))
+                .replace('{size}', [w1, h1].join(','));
+              };
+              console.log(scope);
+              return scope;
+            });
+          },
         }
       ];
 
@@ -113,7 +169,8 @@
 
       //start(config[0]);
       //start(config[1]);
-      config[2].init().then(start);
+      //config[2].init().then(start);
+      config[3].init().then(start);
 
     </script>
   </body>
