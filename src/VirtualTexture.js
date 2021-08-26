@@ -54,8 +54,8 @@ export class VirtualTexture {
     );
 
     const scope = this;
-    this.cache.pageDroppedCallback = function (pageX, pageY, pageZ) {
-      scope.indirectionTable.dropPage(pageX, pageY, pageZ);
+    this.cache.pageDroppedCallback = function (tileId, PageId) {
+      scope.indirectionTable.sub(tileId, PageId);
     };
 
     // init usage table
@@ -65,7 +65,7 @@ export class VirtualTexture {
       var status = scope.cache.getPageStatus(tile.id); // was parentId... not sure why
       if (status !== StatusAvailable) {
         var pageId = scope.cache.cacheTile(tile, tile.id == 0);
-        scope.indirectionTable.setPageId(tile.x, tile.y, tile.z, pageId);
+        scope.indirectionTable.add(tile.id, pageId);
       }
       scope.needsUpdate = true;
     };

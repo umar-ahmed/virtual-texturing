@@ -54,7 +54,7 @@ export class Cache {
 
     this.texture = null;
 
-    this.cachedPages = {}; // id -> pageId
+    this.cachedPages = {}; // tileId -> pageId
     this.newTiles = {}; // pageId -> Tile
     this.freePages = []; // pageId -> bool
     this.pages = []; // pageId -> Page
@@ -119,13 +119,14 @@ export class Cache {
     return this.pages[pageId].z;
   }
 
+  getPageId (x, y, z) {
+    const id = TileId.create(x, y, z);
+    return this.cachedPages[id];
+  }
+
   onPageDropped (id) {
     if (this.pageDroppedCallback) {
-      this.pageDroppedCallback(
-        TileId.getX(id),
-        TileId.getY(id),
-        TileId.getZ(id)
-      );
+      this.pageDroppedCallback(id, this.cachedPages[id]);
     }
   }
 
@@ -229,15 +230,15 @@ export class Cache {
     // if valid, remove it now, (otherwise handles leak)
     const page = this.pages[pageId];
     if (page.valid) {
-      this.onPageDropped(page.pageId);
-      delete this.cachedPages[page.pageId];
+      this.onPageDropped(page.tileId);
+      delete this.cachedPages[page.tileId];
     }
 
     // update pageId
     this.freePages[pageId] = false;
     this.cachedPages[id] = pageId;
     page.z = TileId.getZ(id);
-    page.pageId = id;
+    page.tileId = id;
     page.valid = true;
 
     return pageId;

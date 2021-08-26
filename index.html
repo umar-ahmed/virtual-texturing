@@ -41,12 +41,12 @@
           }
         },
         {
-          maxMipMapLevel: 8,
+          maxMipMapLevel: 9,
           minMipMapLevel: 0,
           tileSize: [256,256],
           tilePadding: 0,
           tileClamp: 0.5,
-          cacheSize: 1000,//600,
+          cacheSize: 4000,//600,
           tileDeterminationRatio: 0.125,
           getTilePath: function(tile) {
             let url = 'https://wxs.ign.fr/3ht7xcw6f7nciopo16etuqp2/geoportail/wmts?LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={Z}&TILEROW={Y}&TILECOL={X}';
@@ -120,7 +120,7 @@
             .replace('{ID}', this.id);
             this.url = this.img_url
             .replace('{IIIF}', this.iiif)
-            .replace('{ID}', this.id)
+            .replace('{ID}', this.id);
             return fetch(info_url)
             .then((response) => response.json())
             .then((info) => {
@@ -167,8 +167,8 @@
       }
 
 
-      //start(config[0]);
-      start(config[1]);
+      start(config[0]);
+      //start(config[1]);
       //config[2].init().then(start);
       //config[3].init().then(start);
 

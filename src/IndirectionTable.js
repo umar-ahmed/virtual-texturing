@@ -145,105 +145,42 @@ export class IndirectionTable {
 
   setData(z, cache, renderCount) {
     const size = 1 << z;
+    const size0 = size >> 1;
     for (let x = 0; x < size; ++x) {
       for (let y = 0; y <size; ++y) {
-        const pageId = this.getPageId(x, y, z);
+        const pageId = z == 0 ? 0 : cache.getPageId(x, y, z);
         const offset = (size*y + x) * 4 ;
-        this.dataArrays[z][offset    ] = cache.getPageX(pageId);
-        this.dataArrays[z][offset + 1] = cache.getPageY(pageId);
-        this.dataArrays[z][offset + 2] = cache.getPageZ(pageId);
-        this.dataArrays[z][offset + 3] = Math.min(255, renderCount - cache.pages[pageId].lastHits);
+        if (pageId === undefined) {
+          const offset0 = (size0* (y >> 1) + (x >> 1)) * 4 ;
+          this.dataArrays[z][offset    ] = this.dataArrays[z-1][offset0     ];
+          this.dataArrays[z][offset + 1] = this.dataArrays[z-1][offset0 + 1 ];
+          this.dataArrays[z][offset + 2] = this.dataArrays[z-1][offset0 + 2 ];
+          this.dataArrays[z][offset + 3] = this.dataArrays[z-1][offset0 + 3 ];;
+        } else {
+          this.dataArrays[z][offset    ] = cache.getPageX(pageId);
+          this.dataArrays[z][offset + 1] = cache.getPageY(pageId);
+          this.dataArrays[z][offset + 2] = cache.getPageZ(pageId);
+          this.dataArrays[z][offset + 3] = Math.min(255, renderCount - cache.pages[pageId].lastHits);
+        }
       }
     }
   }
 
 
   update (cache, renderCount) {
-    for (let z = 0; z < this.maxLevel; ++z) {
-      const size = 1 << z;
-
-      for (let y = 0; y < size; ++y) {
-
-        for (let x = 0; x < size; ++x) {
-
-          // update corresponding elements
-          const lowerX = x << 1;
-          const lowerY = y << 1;
-          const lowerZ = z + 1;
-
-          const pageId = this.getPageId(x, y, z);
-
-          if (-1 === pageId) {
-            console.error("Not Found");
-            continue;
-          }
-
-          const pageZ = cache.getPageZ(pageId);
-          this.setUpdate(lowerX, lowerY, lowerZ, pageId, pageZ, cache);
-          this.setUpdate(lowerX + 1, lowerY, lowerZ, pageId, pageZ, cache);
-          this.setUpdate(lowerX, lowerY + 1, lowerZ, pageId, pageZ, cache);
-          this.setUpdate(lowerX + 1, lowerY + 1, lowerZ, pageId, pageZ, cache);
-
-
-          // merge cells
-          // node.canMergeChildren();
-        }
-      }
-    }
-
     for( let l = 0; l <= this.maxLevel; ++l) this.setData(l, cache, renderCount);
     this.writeToTexture();
     if (this.canvas) this.writeToCanvas(cache);
-
   }
 
-  getEntryIndex (x, y, z) {
-    return this.offsets[z] + y * (1 << z) + x;
+  add (tileId, pageId) {
+  //  console.log("add",tileId,pageId);
   }
 
-  getPageId (x, y, z) {
-    return this.pageIds[this.getEntryIndex(x, y, z)];
-  }
-
-  setPageId (x, y, z, pageId) {
-    this.pageIds[this.getEntryIndex(x, y, z)] = pageId;
-  }
-
-  dropPage (x, y, z) {
-    const pageId = this.getPageId(x, y, z);
-    this.setPageId(x, y, z, -1);
-
-    let size = 1;
-    for (let iz = z + 1; iz <= this.maxLevel; ++iz) {
-      x <<= 1;
-      y <<= 1;
-      size <<= 1;
-
-      for (let iy = y; iy < y+size; ++iy)
-        for (let ix = x; ix < x+size; ++ix)
-          if (this.getPageId(ix, iy, iz) === pageId)
-            this.setPageId(ix, iy, iz, -1);
-    }
-  }
-
-  setUpdate(x, y, z, newPage, pageZ, cache) {
-    const pageId = this.getPageId(x, y, z);
-    const isEmpty = ((-1) === pageId);
-    if (isEmpty || (cache.getPageZ(pageId) < pageZ)) {
-      this.setPageId(x, y, z, newPage);
-    }
+  sub (tileId, pageId) {
+  //  console.log("sub",tileId,pageId);
   }
 
   clear () {
-    for (let z = 0; z <= this.maxLevel; ++z) {
-      const size = 1 << z;
-      for (let y = 0; y < size; ++y) {
-        for (let x = 0; x < size; ++x) {
-          const dz = z - this.minLevel;
-          var id = dz < 0 ? -1 : TileId.create(x >> dz, y >> dz, this.minLevel);
-          this.setPageId(x, y, z, id);
-        }
-      }
-    }
   }
 };

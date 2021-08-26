@@ -7,7 +7,7 @@ export class Page {
     this.valid = false;
     this.z = 0;
     this.forced = false;
-    this.pageId = null;
+    this.tileId = null;
     this.lastHits = 0;
     this.hits = 0;
   }
