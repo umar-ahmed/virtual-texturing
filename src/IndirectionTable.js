@@ -128,21 +128,6 @@ export class IndirectionTable {
     document.body.appendChild(this.canvas);
   }
 
-  setChildren (x, y, z, newSlot, oldSlot) {
-    if (z == this.maxLevel) return;
-    let size = 1;
-    for (let iz = z + 1; iz <= this.maxLevel; ++iz) {
-      x <<= 1;
-      y <<= 1;
-      size <<= 1;
-
-      for (let iy = y; iy < y+size; ++iy)
-        for (let ix = x; ix < x+size; ++ix)
-          if (this.getSlot(ix, iy, iz) === oldSlot)
-            this.setSlot(ix, iy, iz, newSlot);
-    }
-  }
-
   writeToCanvas(cache) {
     const data = this.dataArrays[this.maxLevel];
     for (let j = 0; j < data.length; j += 4) {
@@ -223,11 +208,22 @@ export class IndirectionTable {
   setSlot (x, y, z, slot) {
     this.slots[this.getEntryIndex(x, y, z)] = slot;
   }
-  
+
   dropPage (x, y, z) {
     const slot = this.getSlot(x, y, z);
     this.setSlot(x, y, z, -1);
-    this.setChildren(x, y, z, -1, slot);
+
+    let size = 1;
+    for (let iz = z + 1; iz <= this.maxLevel; ++iz) {
+      x <<= 1;
+      y <<= 1;
+      size <<= 1;
+
+      for (let iy = y; iy < y+size; ++iy)
+        for (let ix = x; ix < x+size; ++ix)
+          if (this.getSlot(ix, iy, iz) === slot)
+            this.setSlot(ix, iy, iz, -1);
+    }
   }
 
   setUpdate(x, y, z, newSlot, pageZ, cache) {
