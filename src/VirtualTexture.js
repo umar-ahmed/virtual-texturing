@@ -55,9 +55,7 @@ export class VirtualTexture {
 
     const scope = this;
     this.cache.pageDroppedCallback = function (pageX, pageY, pageZ) {
-      const slot = scope.indirectionTable.getSlot(pageX, pageY, pageZ);
-      scope.indirectionTable.setSlot(pageX, pageY, pageZ, -1);
-      scope.indirectionTable.setChildren(pageX, pageY, pageZ, -1, slot);
+      scope.indirectionTable.dropPage(pageX, pageY, pageZ);
     };
 
     // init usage table

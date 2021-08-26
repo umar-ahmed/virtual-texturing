@@ -223,7 +223,12 @@ export class IndirectionTable {
   setSlot (x, y, z, slot) {
     this.slots[this.getEntryIndex(x, y, z)] = slot;
   }
-
+  
+  dropPage (x, y, z) {
+    const slot = this.getSlot(x, y, z);
+    this.setSlot(x, y, z, -1);
+    this.setChildren(x, y, z, -1, slot);
+  }
 
   setUpdate(x, y, z, newSlot, pageZ, cache) {
     const slot = this.getSlot(x, y, z);
