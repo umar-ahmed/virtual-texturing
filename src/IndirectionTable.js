@@ -17,7 +17,7 @@ export class IndirectionTable {
   constructor(minlevel, maxLevel) {
 
     // quad-tree representation
-    this.slots = null;
+    this.pageIds = null;
     this.minLevel = minlevel;
     this.maxLevel = maxLevel;
     this.size = 1 << maxLevel;
@@ -49,9 +49,9 @@ export class IndirectionTable {
       numElements >>= 2;
     }
 
-    this.slots = [];
+    this.pageIds = [];
     for (i = 0; i < accumulator; ++i) {
-      this.slots[i] = -1;
+      this.pageIds[i] = -1;
     }
 
     for (i = 0; i < this.dataArrays.length; ++i) {
@@ -147,12 +147,12 @@ export class IndirectionTable {
     const size = 1 << z;
     for (let x = 0; x < size; ++x) {
       for (let y = 0; y <size; ++y) {
-        const id = this.getSlot(x, y, z);
+        const pageId = this.getPageId(x, y, z);
         const offset = (size*y + x) * 4 ;
-        this.dataArrays[z][offset    ] = cache.getPageX(id);
-        this.dataArrays[z][offset + 1] = cache.getPageY(id);
-        this.dataArrays[z][offset + 2] = cache.getPageZ(id);
-        this.dataArrays[z][offset + 3] = Math.min(255, renderCount - cache.pages[id].lastHits);
+        this.dataArrays[z][offset    ] = cache.getPageX(pageId);
+        this.dataArrays[z][offset + 1] = cache.getPageY(pageId);
+        this.dataArrays[z][offset + 2] = cache.getPageZ(pageId);
+        this.dataArrays[z][offset + 3] = Math.min(255, renderCount - cache.pages[pageId].lastHits);
       }
     }
   }
@@ -171,18 +171,18 @@ export class IndirectionTable {
           const lowerY = y << 1;
           const lowerZ = z + 1;
 
-          const slot = this.getSlot(x, y, z);
+          const pageId = this.getPageId(x, y, z);
 
-          if (-1 === slot) {
+          if (-1 === pageId) {
             console.error("Not Found");
             continue;
           }
 
-          const pageZ = cache.getPageZ(slot);
-          this.setUpdate(lowerX, lowerY, lowerZ, slot, pageZ, cache);
-          this.setUpdate(lowerX + 1, lowerY, lowerZ, slot, pageZ, cache);
-          this.setUpdate(lowerX, lowerY + 1, lowerZ, slot, pageZ, cache);
-          this.setUpdate(lowerX + 1, lowerY + 1, lowerZ, slot, pageZ, cache);
+          const pageZ = cache.getPageZ(pageId);
+          this.setUpdate(lowerX, lowerY, lowerZ, pageId, pageZ, cache);
+          this.setUpdate(lowerX + 1, lowerY, lowerZ, pageId, pageZ, cache);
+          this.setUpdate(lowerX, lowerY + 1, lowerZ, pageId, pageZ, cache);
+          this.setUpdate(lowerX + 1, lowerY + 1, lowerZ, pageId, pageZ, cache);
 
 
           // merge cells
@@ -201,17 +201,17 @@ export class IndirectionTable {
     return this.offsets[z] + y * (1 << z) + x;
   }
 
-  getSlot (x, y, z) {
-    return this.slots[this.getEntryIndex(x, y, z)];
+  getPageId (x, y, z) {
+    return this.pageIds[this.getEntryIndex(x, y, z)];
   }
 
-  setSlot (x, y, z, slot) {
-    this.slots[this.getEntryIndex(x, y, z)] = slot;
+  setPageId (x, y, z, pageId) {
+    this.pageIds[this.getEntryIndex(x, y, z)] = pageId;
   }
 
   dropPage (x, y, z) {
-    const slot = this.getSlot(x, y, z);
-    this.setSlot(x, y, z, -1);
+    const pageId = this.getPageId(x, y, z);
+    this.setPageId(x, y, z, -1);
 
     let size = 1;
     for (let iz = z + 1; iz <= this.maxLevel; ++iz) {
@@ -221,16 +221,16 @@ export class IndirectionTable {
 
       for (let iy = y; iy < y+size; ++iy)
         for (let ix = x; ix < x+size; ++ix)
-          if (this.getSlot(ix, iy, iz) === slot)
-            this.setSlot(ix, iy, iz, -1);
+          if (this.getPageId(ix, iy, iz) === pageId)
+            this.setPageId(ix, iy, iz, -1);
     }
   }
 
   setUpdate(x, y, z, newSlot, pageZ, cache) {
-    const slot = this.getSlot(x, y, z);
-    const isEmpty = ((-1) === slot);
-    if (isEmpty || (cache.getPageZ(slot) < pageZ)) {
-      this.setSlot(x, y, z, newSlot);
+    const pageId = this.getPageId(x, y, z);
+    const isEmpty = ((-1) === pageId);
+    if (isEmpty || (cache.getPageZ(pageId) < pageZ)) {
+      this.setPageId(x, y, z, newSlot);
     }
   }
 
@@ -241,7 +241,7 @@ export class IndirectionTable {
         for (let x = 0; x < size; ++x) {
           const dz = z - this.minLevel;
           var id = dz < 0 ? -1 : PageId.create(x >> dz, y >> dz, this.minLevel);
-          this.setSlot(x, y, z, id);
+          this.setPageId(x, y, z, id);
         }
       }
     }

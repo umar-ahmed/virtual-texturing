@@ -64,8 +64,8 @@ export class VirtualTexture {
     this.tileQueue.callback = function (tile) {
       var status = scope.cache.getPageStatus(tile.id); // was parentId... not sure why
       if (status !== StatusAvailable) {
-        var slot = scope.cache.cacheTile(tile, tile.id == 0);
-        scope.indirectionTable.setSlot(tile.pageX, tile.pageY, tile.pageZ, slot);
+        var pageId = scope.cache.cacheTile(tile, tile.id == 0);
+        scope.indirectionTable.setPageId(tile.pageX, tile.pageY, tile.pageZ, pageId);
       }
       scope.needsUpdate = true;
     };
@@ -109,11 +109,11 @@ export class VirtualTexture {
     }
 
     restoreOrEnqueueVisibleUncachedTiles() {
-      for (let pageId in this.usageTable.table) {
-        if (this.usageTable.table.hasOwnProperty(pageId)) {
-          let pageX = PageId.getPageX(pageId);
-          let pageY = PageId.getPageY(pageId);
-          let pageZ = PageId.getPageZ(pageId);
+      for (let tileId in this.usageTable.table) {
+        if (this.usageTable.table.hasOwnProperty(tileId)) {
+          let pageX = PageId.getPageX(tileId);
+          let pageY = PageId.getPageY(tileId);
+          let pageZ = PageId.getPageZ(tileId);
           let size = 1 << pageZ;
 
           if (pageX >= size || pageY >= size || pageX < 0 || pageY < 0) {
@@ -122,12 +122,12 @@ export class VirtualTexture {
             continue;
           }
 
-          const status = this.cache.getPageStatus(pageId);
+          const status = this.cache.getPageStatus(tileId);
 
           // if page is pending delete, try to restore it
           let wasRestored = false;
           if (StatusPendingDelete === status) {
-            slot = this.cache.restorePage(pageId);
+            slot = this.cache.restorePage(tileId);
             if (slot != -1) {
               this.indirectionTable.setSlot(pageX, pageY, pageZ, slot);
               wasRestored = true;
@@ -149,7 +149,7 @@ export class VirtualTexture {
               //if ((StatusAvailable !== newPageStatus) && slot == -1) {
               if ((StatusAvailable !== newPageStatus)) {
                 if (!this.tileQueue.contains(newPageId)) {
-                  const hits = this.usageTable.table[pageId];
+                  const hits = this.usageTable.table[tileId];
                   const tile = new Tile(newPageId, hits);
                   this.tileQueue.push(tile);
                 }
