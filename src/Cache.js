@@ -216,7 +216,7 @@ export class Cache {
     return this.freeSlots.includes(true);
   }
 
-  getSlot (id) {
+  reserveSlot (id) {
     // try to restore
     let slot = this.restorePage(id);
     if (slot >= 0) {
@@ -286,7 +286,7 @@ export class Cache {
 
   cacheTile (tile, forced) {
     try {
-      const slot = this.getSlot(tile.id);
+      const slot = this.reserveSlot(tile.id);
       this.newTiles[slot] = tile;
       this.pages[slot].forced = forced;
       return slot;
