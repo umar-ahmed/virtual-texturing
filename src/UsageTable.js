@@ -2,7 +2,7 @@
 * UsageTable
 */
 
-import { PageId } from './PageId.js'
+import { TileId } from './TileId.js'
 
 export class UsageTable {
   constructor (size) {
@@ -10,22 +10,22 @@ export class UsageTable {
     this.clear();
   }
 
+  clear () {
+    this.table = {}; // tileId => number of hits
+  }
+
+  isUsed (id) {
+    return this.table[id] !== undefined;
+  }
+
   add (tileX, tileY, tileLevel) {
     const tileZ = this.maxMipMapLevel-tileLevel;
-    var id = PageId.create(tileX, tileY, tileZ);
+    var id = TileId.create(tileX, tileY, tileZ);
     if (this.isUsed(id)) {
       ++this.table[id];
     } else {
       this.table[id] = 1;
     }
-  }
-
-  clear () {
-    this.table = {};
-  }
-
-  isUsed (id) {
-    return this.table[id] !== undefined;
   }
 
   update ( data ) {

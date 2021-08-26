@@ -7,7 +7,7 @@
  import { IndirectionTable } from './IndirectionTable.js';
  import { TileQueue } from './TileQueue.js';
  import { UsageTable } from './UsageTable.js';
- import { PageId } from './PageId.js';
+ import { TileId } from './TileId.js';
  import { Tile } from './Tile.js';
  import { VisibleTileShader } from './VisibleTileShader.js';
  import { VirtualTextureShader } from './VirtualTextureShader.js';
@@ -65,7 +65,7 @@ export class VirtualTexture {
       var status = scope.cache.getPageStatus(tile.id); // was parentId... not sure why
       if (status !== StatusAvailable) {
         var pageId = scope.cache.cacheTile(tile, tile.id == 0);
-        scope.indirectionTable.setPageId(tile.pageX, tile.pageY, tile.pageZ, pageId);
+        scope.indirectionTable.setPageId(tile.x, tile.y, tile.z, pageId);
       }
       scope.needsUpdate = true;
     };
@@ -101,7 +101,7 @@ export class VirtualTexture {
       const size = 1 << z;
       for (let y = 0; y < size; ++y) {
         for (let x = 0; x < size; ++x) {
-          const id = PageId.create(x, y, z);
+          const id = TileId.create(x, y, z);
           const tile = new Tile(id, Number.MAX_VALUE);
           this.tileQueue.push(tile);
         }
@@ -111,9 +111,9 @@ export class VirtualTexture {
     restoreOrEnqueueVisibleUncachedTiles() {
       for (let tileId in this.usageTable.table) {
         if (this.usageTable.table.hasOwnProperty(tileId)) {
-          let pageX = PageId.getPageX(tileId);
-          let pageY = PageId.getPageY(tileId);
-          let pageZ = PageId.getPageZ(tileId);
+          let pageX = TileId.getX(tileId);
+          let pageY = TileId.getY(tileId);
+          let pageZ = TileId.getZ(tileId);
           let size = 1 << pageZ;
 
           if (pageX >= size || pageY >= size || pageX < 0 || pageY < 0) {
@@ -127,9 +127,9 @@ export class VirtualTexture {
           // if page is pending delete, try to restore it
           let wasRestored = false;
           if (StatusPendingDelete === status) {
-            slot = this.cache.restorePage(tileId);
-            if (slot != -1) {
-              this.indirectionTable.setSlot(pageX, pageY, pageZ, slot);
+            pageId = this.cache.restorePage(tileId);
+            if (pageId != -1) {
+              this.indirectionTable.setPage(pageX, pageY, pageZ, pageId);
               wasRestored = true;
             }
           }
@@ -141,16 +141,16 @@ export class VirtualTexture {
             // request the page and all parents
             while (pageZ > minParentZ) {
 
-              const newPageId = PageId.create(pageX, pageY, pageZ);
-              const newPageStatus = this.cache.getPageStatus(newPageId);
+              const newTileId = TileId.create(pageX, pageY, pageZ);
+              const newPageStatus = this.cache.getPageStatus(newTileId);
 
               // FIXME: should try to restore page?
-              //slot = this.cache.restorePage(newPageId);
-              //if ((StatusAvailable !== newPageStatus) && slot == -1) {
+              //pageId = this.cache.restorePage(newTileId);
+              //if ((StatusAvailable !== newPageStatus) && pageId == -1) {
               if ((StatusAvailable !== newPageStatus)) {
-                if (!this.tileQueue.contains(newPageId)) {
+                if (!this.tileQueue.contains(newTileId)) {
                   const hits = this.usageTable.table[tileId];
-                  const tile = new Tile(newPageId, hits);
+                  const tile = new Tile(newTileId, hits);
                   this.tileQueue.push(tile);
                 }
               }
@@ -214,7 +214,7 @@ export class VirtualTexture {
       vt.cacheIndirection = this.indirectionTable.texture;
       vt.padding = [ this.cache.padding/this.cache.realTileSize.x , this.cache.padding/this.cache.realTileSize.y ];
       vt.tileSize = [ this.cache.realTileSize.x , this.cache.realTileSize.y ];
-      vt.numTiles = [ this.cache.tileCountPerSide.x , this.cache.tileCountPerSide.y ];
+      vt.numPages = [ this.cache.pageCount.x , this.cache.pageCount.y ];
       vt.maxMipMapLevel = this.maxMipMapLevel;
       uniforms.bDebugCache.value = this.debugCache;
       uniforms.bDebugLevel.value = this.debugLevel;

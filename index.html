@@ -34,8 +34,8 @@
           tileDeterminationRatio: 0.125,
           getTilePath: function(tile) {
             const directory = '/examples/models/terrain/tiles/diffuse/';
-            const level = tile.pageZ;
-            const pageNumber = tile.pageX + tile.pageY * ( 1 << level );
+            const level = tile.z;
+            const pageNumber = tile.x + tile.y * ( 1 << level );
             const filename = level + '-' + pageNumber + ".jpg";
             return directory + filename;
           }
@@ -46,13 +46,13 @@
           tileSize: [256,256],
           tilePadding: 0,
           tileClamp: 0.5,
-          cacheSize: 4000,//600,
+          cacheSize: 1000,//600,
           tileDeterminationRatio: 0.125,
           getTilePath: function(tile) {
             let url = 'https://wxs.ign.fr/3ht7xcw6f7nciopo16etuqp2/geoportail/wmts?LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={Z}&TILEROW={Y}&TILECOL={X}';
-            url = url.replace('{X}', tile.pageX);
-            url = url.replace('{Y}', tile.pageY);
-            url = url.replace('{Z}', tile.pageZ);
+            url = url.replace('{X}', tile.x);
+            url = url.replace('{Y}', tile.y);
+            url = url.replace('{Z}', tile.z);
             return url;
           }
         },
@@ -93,10 +93,10 @@
                 scope.numTiles[z] = [W, H];
               }
               scope.getTilePath = function(tile) {
-                const W = scope.numTiles[tile.pageZ][0];
-                const H = scope.numTiles[tile.pageZ][1];
-                if ( tile.pageX >= W || tile.pageY >= H ) return null;
-                return scope.url.replace('{JTL}', tile.pageZ+','+(tile.pageX+W*tile.pageY));
+                const W = scope.numTiles[tile.z][0];
+                const H = scope.numTiles[tile.z][1];
+                if ( tile.x >= W || tile.y >= H ) return null;
+                return scope.url.replace('{JTL}', tile.z+','+(tile.x+W*tile.y));
               };
               return scope;
             });
@@ -136,14 +136,14 @@
                 scope.numTiles[z] = [W, H];
               }
               scope.getTilePath = function(tile) {
-                const W = scope.numTiles[tile.pageZ][0];
-                const H = scope.numTiles[tile.pageZ][1];
-                if ( tile.pageX >= W || tile.pageY >= H ) return null;
-                const z = scope.maxMipMapLevel - tile.pageZ;
+                const W = scope.numTiles[tile.z][0];
+                const H = scope.numTiles[tile.z][1];
+                if ( tile.x >= W || tile.y >= H ) return null;
+                const z = scope.maxMipMapLevel - tile.z;
                 const w = scope.tileSize[0] << z;
                 const h = scope.tileSize[1] << z;
-                const x = tile.pageX * w;
-                const y = tile.pageY * h;
+                const x = tile.x * w;
+                const y = tile.y * h;
                 const w0 = Math.min(w, scope.size[0] - x);
                 const h0 = Math.min(w, scope.size[1] - y);
                 const w1 = w0 >> z;
@@ -168,9 +168,9 @@
 
 
       //start(config[0]);
-      //start(config[1]);
+      start(config[1]);
       //config[2].init().then(start);
-      config[3].init().then(start);
+      //config[3].init().then(start);
 
     </script>
   </body>

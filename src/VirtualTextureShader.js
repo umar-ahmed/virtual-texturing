@@ -12,7 +12,7 @@ const pars_fragment = [
   " usampler2D cacheIndirection;",
   " vec2 padding;",
   " vec2 tileSize;",
-  " vec2 numTiles;",
+  " vec2 numPages;",
   " float maxMipMapLevel;",
   "};",
 
@@ -24,7 +24,7 @@ const pars_fragment = [
     "inPageUv = vt.padding + inPageUv * (1.-2.*vt.padding);",
 
     // cache texture uv
-    "uv = (page.xy + inPageUv) / vt.numTiles;",
+    "uv = (page.xy + inPageUv) / vt.numPages;",
     "return page;",
   "}",
 
@@ -43,7 +43,7 @@ const pars_fragment = [
     "inPageUv = clamp(inPageUv, clamping.xy, clamping.zw);",
 
     // cache texture uv
-    "uv = (page.xy + inPageUv) / vt.numTiles;",
+    "uv = (page.xy + inPageUv) / vt.numPages;",
     "return page;",
   "}",
 
@@ -60,8 +60,8 @@ const pars_fragment = [
     "vec2 gfactor = exp2(page.z - vt.maxMipMapLevel) * (1.-2.*vt.padding);",
     "vec2 dx = gx * gfactor;",
     "vec2 dy = gy * gfactor;",
-    "gx = dx / (vt.numTiles * vt.tileSize);",
-    "gy = dy / (vt.numTiles * vt.tileSize);",
+    "gx = dx / (vt.numPages * vt.tileSize);",
+    "gy = dy / (vt.numPages * vt.tileSize);",
     "float d = max(dot( dx, dx ), dot( dy, dy ) );",
     "float lod = clamp(0.5 * log2( d ), 0., vt.maxMipMapLevel);",
     "vec4 clamping;",
@@ -75,7 +75,7 @@ const pars_fragment = [
     "gy = clamp(gy, gminmax.xy, gminmax.zw);",
 
     // cache texture uv
-    "uv = (page.xy + inPageUv) / vt.numTiles;",
+    "uv = (page.xy + inPageUv) / vt.numPages;",
     "return page;",
   "}",
 

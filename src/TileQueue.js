@@ -43,7 +43,7 @@ export class TileQueue {
         tile.image = this;
         tile.loaded = true;
 
-        console.log('Tile ' + tile.pageX + ',' + tile.pageY + '@' + tile.pageZ + ' loaded | Count: ' + scope.loadCount );
+        console.log('Tile ' + tile.x + ',' + tile.y + '@' + tile.z + ' loaded | Count: ' + scope.loadCount );
 
         scope.process();
         if (scope.callback) scope.callback(tile);

@@ -11,7 +11,7 @@
 import { DataTexture, RGBAIntegerFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, NearestFilter }
 from '../examples/jsm/three.module.js';
 
-import { PageId } from './PageId.js'
+import { TileId } from './TileId.js'
 
 export class IndirectionTable {
   constructor(minlevel, maxLevel) {
@@ -131,8 +131,8 @@ export class IndirectionTable {
   writeToCanvas(cache) {
     const data = this.dataArrays[this.maxLevel];
     for (let j = 0; j < data.length; j += 4) {
-      this.imageData.data[j    ] = data[j    ] * 255 / cache.tileCountPerSide.x;
-      this.imageData.data[j + 1] = data[j + 1] * 255 / cache.tileCountPerSide.y;
+      this.imageData.data[j    ] = data[j    ] * 255 / cache.pageCount.x;
+      this.imageData.data[j + 1] = data[j + 1] * 255 / cache.pageCount.y;
       this.imageData.data[j + 2] = data[j + 2] * 255 / this.maxLevel;
       this.imageData.data[j + 3] = data[j + 3];
     }
@@ -226,11 +226,11 @@ export class IndirectionTable {
     }
   }
 
-  setUpdate(x, y, z, newSlot, pageZ, cache) {
+  setUpdate(x, y, z, newPage, pageZ, cache) {
     const pageId = this.getPageId(x, y, z);
     const isEmpty = ((-1) === pageId);
     if (isEmpty || (cache.getPageZ(pageId) < pageZ)) {
-      this.setPageId(x, y, z, newSlot);
+      this.setPageId(x, y, z, newPage);
     }
   }
 
@@ -240,7 +240,7 @@ export class IndirectionTable {
       for (let y = 0; y < size; ++y) {
         for (let x = 0; x < size; ++x) {
           const dz = z - this.minLevel;
-          var id = dz < 0 ? -1 : PageId.create(x >> dz, y >> dz, this.minLevel);
+          var id = dz < 0 ? -1 : TileId.create(x >> dz, y >> dz, this.minLevel);
           this.setPageId(x, y, z, id);
         }
       }

@@ -1,5 +1,5 @@
 import { Page } from './Page.js';
-import { PageId } from './PageId.js';
+import { TileId } from './TileId.js';
 import { Tile } from './Tile.js';
 import { DataTexture, RGBAFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, LinearMipMapLinearFilter, LinearFilter, Vector2 }
 from '../examples/jsm/three.module.js';
@@ -42,24 +42,24 @@ export class Cache {
       y: tileSize[1] + (2 * padding)
     };
 
-    this.tileCountPerSide = {
+    this.pageCount = {
       x: Math.floor(width / this.realTileSize.x),
       y: Math.floor(height / this.realTileSize.y)
     };
 
-    this.width = this.tileCountPerSide.x * this.realTileSize.x;
-    this.height = this.tileCountPerSide.y * this.realTileSize.y;
+    this.width = this.pageCount.x * this.realTileSize.x;
+    this.height = this.pageCount.y * this.realTileSize.y;
 
     this.padding = padding;
 
     this.texture = null;
 
-    this.cachedSlots = {}; // id -> slot
-    this.newTiles = {}; // slot -> Tile
-    this.freeSlots = []; // slot -> bool
-    this.pages = []; // slot -> Page
+    this.cachedPages = {}; // id -> pageId
+    this.newTiles = {}; // pageId -> Tile
+    this.freePages = []; // pageId -> bool
+    this.pages = []; // pageId -> Page
 
-    const numPages = this.tileCountPerSide.x * this.tileCountPerSide.y;
+    const numPages = this.pageCount.x * this.pageCount.y;
     for (let i = 0; i < numPages; ++i) {
       this.pages.push(new Page());
     }
@@ -99,46 +99,46 @@ export class Cache {
 
   // if possible, move page to the free list
   releasePage (id) {
-    var slot = this.cachedSlots[id];
-    if (undefined !== slot) this.freeSlots[slot] = true;
+    var pageId = this.cachedPages[id];
+    if (undefined !== pageId) this.freePages[pageId] = true;
   }
 
-  getPageX (slot) {
-    return slot % this.tileCountPerSide.x;
+  getPageX (pageId) {
+    return pageId % this.pageCount.x;
   }
 
-  getPageY (slot) {
-    return Math.floor(slot / this.tileCountPerSide.x);
+  getPageY (pageId) {
+    return Math.floor(pageId / this.pageCount.x);
   }
 
-  getPageZ (slot) {
-    if (this.pages[slot] === undefined) {
-      console.error("page on slot " + slot + " is undefined");
+  getPageZ (pageId) {
+    if (this.pages[pageId] === undefined) {
+      console.error("page on pageId " + pageId + " is undefined");
       return -1;
     }
-    return this.pages[slot].z;
+    return this.pages[pageId].z;
   }
 
   onPageDropped (id) {
     if (this.pageDroppedCallback) {
       this.pageDroppedCallback(
-        PageId.getPageX(id),
-        PageId.getPageY(id),
-        PageId.getPageZ(id)
+        TileId.getX(id),
+        TileId.getY(id),
+        TileId.getZ(id)
       );
     }
   }
 
   getPageStatus (id) {
-    const slot = this.cachedSlots[id];
-    if (slot === undefined) {
+    const pageId = this.cachedPages[id];
+    if (pageId === undefined) {
       return StatusNotAvailable;
     }
 
-    const page = this.pages[slot];
+    const page = this.pages[pageId];
 
     if (undefined === page) {
-      console.error(slot, id, 'undefined page');
+      console.error(pageId, id, 'undefined page');
       return StatusNotAvailable;
     }
 
@@ -146,7 +146,7 @@ export class Cache {
       return StatusNotAvailable;
     }
 
-    if (this.freeSlots[slot]) {
+    if (this.freePages[pageId]) {
       return StatusPendingDelete;
     }
 
@@ -154,93 +154,93 @@ export class Cache {
   }
 
   restorePage (id) {
-    const slot = this.cachedSlots[id];
-    if (slot === undefined)  return -1;
-    this.freeSlots[slot] = false;
-    return slot;
+    const pageId = this.cachedPages[id];
+    if (pageId === undefined)  return -1;
+    this.freePages[pageId] = false;
+    return pageId;
   }
 
   getStatus () {
-    let usedSlots = this.pages.reduce((count, page) => count + page.valid , 0);
-    let freeSlots = this.freeSlots.reduce((count, freeSlot) => count + freeSlot , 0);
+    let usedPages = this.pages.reduce((count, page) => count + page.valid , 0);
+    let freePages = this.freePages.reduce((count, freePage) => count + freePage , 0);
 
     return {
-      used: usedSlots,
-      markedFree: this.pages.length - usedSlots,
-      free: freeSlots
+      used: usedPages,
+      markedFree: this.pages.length - usedPages,
+      free: freePages
     }
   }
 
   clear () {
-    this.cachedSlots = {};
-    this.freeSlots = [];
+    this.cachedPages = {};
+    this.freePages = [];
 
     for (let i = 0; i < this.pages.length; ++i) {
       this.pages[i].valid = false;
-      this.freeSlots[i] = true;
+      this.freePages[i] = true;
     }
   }
 
-  getNextFreeSlot () {
-      let slot = this.freeSlots.findIndex(value => value);
-      return (slot < 0) ? this.freeSlot() : slot;
+  getNextFreePage () {
+      let pageId = this.freePages.findIndex(value => value);
+      return (pageId < 0) ? this.freePage() : pageId;
   }
 
-  // find one slot and free it
-  // this function gets called when no slots are free
-  freeSlot () {
+  // find one pageId and free it
+  // this function gets called when no pageIds are free
+  freePage () {
     try {
-      let slot = undefined, lastHits = Number.MAX_VALUE, hits = Number.MAX_VALUE;
+      let pageId = undefined, lastHits = Number.MAX_VALUE, hits = Number.MAX_VALUE;
       for (let i = 0; i < this.pages.length; ++i) {
         const page = this.pages[i];
         if (page.forced) continue;
         if (page.lastHits < lastHits || (page.lastHits == lastHits && page.hits < hits) ) {
           lastHits = page.lastHits;
           hits = page.hits;
-          slot = i;
+          pageId = i;
         }
       }
 
-      if (undefined === slot) {
-        console.error("FreeSlotNotFound");
+      if (undefined === pageId) {
+        console.error("FreePageNotFound");
       }
 
-      this.freeSlots[slot] = true;
-      return slot;
+      this.freePages[pageId] = true;
+      return pageId;
     } catch (e) {
       console.log(e.stack);
     }
   }
 
-  hasFreeSlot () {
-    return this.freeSlots.includes(true);
+  hasFreePage () {
+    return this.freePages.includes(true);
   }
 
-  reserveSlot (id) {
+  reservePage (id) {
     // try to restore
-    let slot = this.restorePage(id);
-    if (slot >= 0) {
-      return slot;
+    let pageId = this.restorePage(id);
+    if (pageId >= 0) {
+      return pageId;
     }
 
     // get the next free page
-    slot = this.getNextFreeSlot();
+    pageId = this.getNextFreePage();
 
     // if valid, remove it now, (otherwise handles leak)
-    const page = this.pages[slot];
+    const page = this.pages[pageId];
     if (page.valid) {
       this.onPageDropped(page.pageId);
-      delete this.cachedSlots[page.pageId];
+      delete this.cachedPages[page.pageId];
     }
 
-    // update slot
-    this.freeSlots[slot] = false;
-    this.cachedSlots[id] = slot;
-    page.z = PageId.getPageZ(id);
+    // update pageId
+    this.freePages[pageId] = false;
+    this.cachedPages[id] = pageId;
+    page.z = TileId.getZ(id);
     page.pageId = id;
     page.valid = true;
 
-    return slot;
+    return pageId;
   }
 
   update(renderer, usageTable) {
@@ -251,14 +251,14 @@ export class Cache {
   updateTiles(renderer) {
     const scope = this;
     const pos = new Vector2();
-    for(const slot in this.newTiles) {
-      const tile = this.newTiles[slot];
+    for(const pageId in this.newTiles) {
+      const tile = this.newTiles[pageId];
       if (!tile.loaded) continue;
-      let x = this.realTileSize.x * this.getPageX(slot);
-      let y = this.realTileSize.y * this.getPageY(slot);
+      let x = this.realTileSize.x * this.getPageX(pageId);
+      let y = this.realTileSize.y * this.getPageY(pageId);
       let level = 0;
       function buildMipMaps(bitmap) {
-        tile.image = createAnnotatedImageData(bitmap, tile.pageX, tile.pageY, tile.pageZ, level);
+        tile.image = createAnnotatedImageData(bitmap, tile.x, tile.y, tile.z, level);
         pos.set(x, y);
         renderer.copyTextureToTexture(pos, tile, scope.texture, level);
         x >>= 1;
@@ -268,17 +268,17 @@ export class Cache {
           resizeHalf(bitmap).then(buildMipMaps);
       }
       createImageBitmap(tile.image).then(buildMipMaps);
-      delete this.newTiles[slot];
+      delete this.newTiles[pageId];
     }
   }
 
   updateUsage(usageTable, renderCount) {
-    for (let pageId in usageTable.table) {
-      if (usageTable.table.hasOwnProperty(pageId)) {
-        const slot = this.cachedSlots[pageId];
-        if (slot !== undefined) {
-          this.pages[slot].lastHits = renderCount;
-          this.pages[slot].hits = usageTable.table[pageId];
+    for (let tileId in usageTable.table) {
+      if (usageTable.table.hasOwnProperty(tileId)) {
+        const pageId = this.cachedPages[tileId];
+        if (pageId !== undefined) {
+          this.pages[pageId].lastHits = renderCount;
+          this.pages[pageId].hits = usageTable.table[tileId];
         }
       }
     }
@@ -286,10 +286,10 @@ export class Cache {
 
   cacheTile (tile, forced) {
     try {
-      const slot = this.reserveSlot(tile.id);
-      this.newTiles[slot] = tile;
-      this.pages[slot].forced = forced;
-      return slot;
+      const pageId = this.reservePage(tile.id);
+      this.newTiles[pageId] = tile;
+      this.pages[pageId].forced = forced;
+      return pageId;
     } catch (e) {
       console.log(e.stack);
     }
