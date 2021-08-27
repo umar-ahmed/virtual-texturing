@@ -8,18 +8,26 @@ export const StatusNotAvailable = 0;
 export const StatusAvailable = 1;
 export const StatusPendingDelete = 2;
 
-function createAnnotatedImageData(imageBitmap, x, y, z, l) {
+function createAnnotatedImageData(imageBitmap, x, y, z, l, lmax, x0, y0, pad, realTileSize) {
   //return imageBitmap;
 	const canvas = document.createElement( "canvas" );
 	const context = canvas.getContext( "2d" );
   canvas.width = imageBitmap.width;
   canvas.height = imageBitmap.height;
   context.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
+  context.translate((pad-x0) >> l, (pad-y0) >> l);
+  const t = Math.floor((z-l)*255/lmax);
+  const color = "rgb("+t+',0,'+(255-t)+')';
+  context.strokeStyle = color;
+  context.fillStyle  = color;
+  const w = (realTileSize.x-2*pad) >> l;
+  const h = (realTileSize.y-2*pad) >> l;
+  context.strokeRect(0, 0, w, h);
+  context.translate(w >> 1, h >> 1);
   context.textAlign = "center";
-  const scale = canvas.width / 64;
-  context.scale(scale, scale);
-  context.fillText(x+','+y, 32, 27);
-  context.fillText(z+'-'+l, 32, 37);
+  context.scale(canvas.width / 64, canvas.height / 64);
+  context.fillText(x+','+y, 0,-5);
+  context.fillText(z+'-'+l, 0, 5);
   return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
@@ -36,15 +44,16 @@ function resizeHalf( image ) {
 
 export class Cache {
 
-  constructor(tileSize, padding, width, height) {
+  constructor(tileSize, padding, pageCount, maxLevel) {
     this.realTileSize = {
       x: tileSize[0] + (2 * padding),
       y: tileSize[1] + (2 * padding)
     };
 
+    this.maxLevel = maxLevel;
     this.pageCount = {
-      x: Math.floor(width / this.realTileSize.x),
-      y: Math.floor(height / this.realTileSize.y)
+      x: pageCount[0],
+      y: pageCount[1]
     };
 
     this.width = this.pageCount.x * this.realTileSize.x;
@@ -255,11 +264,11 @@ export class Cache {
     for(const pageId in this.newTiles) {
       const tile = this.newTiles[pageId];
       if (!tile.loaded) continue;
-      let x = this.realTileSize.x * this.getPageX(pageId);
-      let y = this.realTileSize.y * this.getPageY(pageId);
+      let x = this.realTileSize.x * this.getPageX(pageId)+tile.x0;
+      let y = this.realTileSize.y * this.getPageY(pageId)+tile.y0;
       let level = 0;
       function buildMipMaps(bitmap) {
-        tile.image = createAnnotatedImageData(bitmap, tile.x, tile.y, tile.z, level);
+        tile.image = createAnnotatedImageData(bitmap, tile.x, tile.y, tile.z, level, scope.maxLevel, tile.x0, tile.y0, scope.padding, scope.realTileSize);
         pos.set(x, y);
         renderer.copyTextureToTexture(pos, tile, scope.texture, level);
         x >>= 1;

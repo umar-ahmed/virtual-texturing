@@ -30,14 +30,15 @@
           tileSize: [128,128],
           tilePadding: 4,
           tileClamp: 0.5,
-          cacheSize: 600,
+          pageCount: [4,4],
           tileDeterminationRatio: 0.125,
           getTilePath: function(tile) {
             const directory = '/examples/models/terrain/tiles/diffuse/';
             const level = tile.z;
             const pageNumber = tile.x + tile.y * ( 1 << level );
             const filename = level + '-' + pageNumber + ".jpg";
-            return directory + filename;
+            const url = directory + filename;
+            return { url };
           }
         },
         {
@@ -46,14 +47,14 @@
           tileSize: [256,256],
           tilePadding: 0,
           tileClamp: 0.5,
-          cacheSize: 4000,//600,
+          pageCount: [16,16],
           tileDeterminationRatio: 0.125,
           getTilePath: function(tile) {
             let url = 'https://wxs.ign.fr/3ht7xcw6f7nciopo16etuqp2/geoportail/wmts?LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={Z}&TILEROW={Y}&TILECOL={X}';
             url = url.replace('{X}', tile.x);
             url = url.replace('{Y}', tile.y);
             url = url.replace('{Z}', tile.z);
-            return url;
+            return { url };
           }
         },
         {
@@ -64,7 +65,7 @@
           info_url: '{IIP}?FIF={ID}&obj=IIP,1.0&obj=Max-size&obj=Tile-size&obj=Resolution-number',
           tilePadding: 0,
           tileClamp: 0.5,
-          cacheSize: 4000,//600,
+          pageCount: [16,16],
           tileDeterminationRatio: 0.125,
           init: function(info) {
             const scope = this;
@@ -96,7 +97,8 @@
                 const W = scope.numTiles[tile.z][0];
                 const H = scope.numTiles[tile.z][1];
                 if ( tile.x >= W || tile.y >= H ) return null;
-                return scope.url.replace('{JTL}', tile.z+','+(tile.x+W*tile.y));
+                const url = scope.url.replace('{JTL}', tile.z+','+(tile.x+W*tile.y));
+                return { url };
               };
               return scope;
             });
@@ -108,10 +110,10 @@
           id: 'Niepce%2FGros%2F2003.15.676.15P01RB.jp2',
           img_url: '{IIIF}/{ID}/{region}/{size}/0/default.jpg',
           info_url: '{IIIF}/{ID}/info.json',
-          tilePadding: 0,
+          tilePadding: 4,
           tileClamp: 0.5,
-          tileSize: [128, 128],
-          cacheSize: 5000,//600,
+          tileSize: [256, 256],
+          pageCount: [16,16],
           tileDeterminationRatio: 0.125,
           init: function(info) {
             const scope = this;
@@ -142,16 +144,22 @@
                 const z = scope.maxMipMapLevel - tile.z;
                 const w = scope.tileSize[0] << z;
                 const h = scope.tileSize[1] << z;
-                const x = tile.x * w;
-                const y = tile.y * h;
-                const w0 = Math.min(w, scope.size[0] - x);
-                const h0 = Math.min(w, scope.size[1] - y);
+                const pad = scope.tilePadding << z;
+                const x = tile.x * w - pad;
+                const y = tile.y * h - pad;
+                const x0 = Math.max(x, 0);
+                const y0 = Math.max(y, 0);
+                const x1 = Math.min(x + w + 2*pad, scope.size[0]);
+                const y1 = Math.min(y + h + 2*pad, scope.size[1]);
+                const w0 = x1-x0;
+                const h0 = y1-y0;
                 const w1 = w0 >> z;
                 const h1 = h0 >> z;
 
-                return scope.url
-                .replace('{region}', [x,y,w0,h0].join(','))
+                const url = scope.url
+                .replace('{region}', [x0,y0,w0,h0].join(','))
                 .replace('{size}', [w1, h1].join(','));
+                return { url, x0: (x0-x)>>z, y0:(y0-y)>>z };
               };
               console.log(scope);
               return scope;
@@ -167,9 +175,9 @@
       }
 
 
-      start(config[0]);
+      //start(config[0]);
       //start(config[1]);
-      //config[2].init().then(start);
+      config[2].init().then(start);
       //config[3].init().then(start);
 
     </script>

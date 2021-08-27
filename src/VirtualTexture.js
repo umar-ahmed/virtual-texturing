@@ -24,7 +24,7 @@ export class VirtualTexture {
     this.maxMipMapLevel = params.maxMipMapLevel;
     this.tileSize = params.tileSize;
     this.tilePadding = params.tilePadding;
-    this.cacheSize = params.cacheSize;
+    this.pageCount = params.pageCount;
     this.tileDeterminationRatio = params.tileDeterminationRatio;
     this.useProgressiveLoading = true;
 
@@ -47,10 +47,10 @@ export class VirtualTexture {
 
     // init page cache
     this.cache = new Cache(
-      this.tileSize,           // pageSizeRoot,
-      this.tilePadding,          // padding,
-      this.cacheSize,
-      this.cacheSize  // cacheSizeRoot
+      this.tileSize,
+      this.tilePadding,
+      this.pageCount,
+      this.maxMipMapLevel
     );
 
     const scope = this;
