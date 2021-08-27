@@ -5,8 +5,8 @@
 import { TileId } from './TileId.js'
 
 export class UsageTable {
-  constructor (size) {
-    this.maxMipMapLevel = Math.floor(Math.log(size) / Math.log(2));
+  constructor (maxLevel) {
+    this.maxMipMapLevel = maxLevel;
     this.clear();
   }
 

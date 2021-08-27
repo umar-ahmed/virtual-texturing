@@ -21,7 +21,8 @@ const pars_fragment = [
     "vec4 page = vec4(texture2D( vt.cacheIndirection, uv ));",
     "float l = exp2(page.z);",
     "vec2 inPageUv = fract(uv * l);",
-    "inPageUv = vt.padding + inPageUv * (1.-2.*vt.padding);",
+    "vec2 paddingScale = 1.-2.*vt.padding;",
+    "inPageUv = vt.padding + inPageUv * paddingScale;",
 
     // cache texture uv
     "uv = (page.xy + inPageUv) / vt.numPages;",
@@ -33,7 +34,8 @@ const pars_fragment = [
     "vec4 page = vec4(texture2D( vt.cacheIndirection, uv ));",
     "float l = exp2(page.z);",
     "vec2 inPageUv = fract(uv * l);",
-    "inPageUv = vt.padding + inPageUv * (1.-2.*vt.padding);",
+    "vec2 paddingScale = 1.-2.*vt.padding;",
+    "inPageUv = vt.padding + inPageUv * paddingScale;",
 
     // compute lod and move inPageUv so that footprint stays in tile
     "lod = clamp(lod - (vt.maxMipMapLevel - page.z), 0., vt.maxMipMapLevel);",
@@ -52,22 +54,28 @@ const pars_fragment = [
     "vec4 page = vec4(texture2D( vt.cacheIndirection, uv ));",
     "float l = exp2(page.z);",
     "vec2 inPageUv = fract(uv * l);",
-    "inPageUv = vt.padding + inPageUv * (1.-2.*vt.padding);",
+    "vec2 paddingScale = 1.-2.*vt.padding;",
+    "inPageUv = vt.padding + inPageUv * paddingScale;",
 
-
-
-    // compute gradients and move inPageUv so that footprint stays in tile
-    "vec2 gfactor = exp2(page.z - vt.maxMipMapLevel) * (1.-2.*vt.padding);",
-    "vec2 dx = gx * gfactor;",
-    "vec2 dy = gy * gfactor;",
-    "gx = dx / (vt.numPages * vt.tileSize);",
-    "gy = dy / (vt.numPages * vt.tileSize);",
+    // compute lod
+    "vec2 dfactor = exp2(page.z - vt.maxMipMapLevel) * paddingScale;",
+    "vec2 dx = gx * dfactor;",
+    "vec2 dy = gy * dfactor;",
     "float d = max(dot( dx, dx ), dot( dy, dy ) );",
     "float lod = clamp(0.5 * log2( d ), 0., vt.maxMipMapLevel);",
+
+    // clamp inPageUv
     "vec4 clamping;",
     "clamping.xy = min(vec2(0.5), exp2(lod)/vt.tileSize);",
     "clamping.zw = 1.-clamping.xy;",
     "inPageUv = clamp(inPageUv, clamping.xy, clamping.zw);",
+
+    // compute gradients
+    "vec2 gfactor = l * paddingScale / vt.numPages;",
+    "gx *= gfactor;",
+    "gy *= gfactor;",
+
+    // clamp gradients
     "vec4 gminmax = clamping - inPageUv.xyxy;",
     "gminmax.xy = max(gminmax.xy, -gminmax.zw);",
     "gminmax.zw = -gminmax.xy;",
@@ -79,9 +87,16 @@ const pars_fragment = [
     "return page;",
   "}",
 
-  "vec4 vt_texture(in VirtualTexture vt, in vec2 uv, out vec4 page) {",
+  "vec4 vt_textureBasic(in VirtualTexture vt, in vec2 uv, out vec4 page) {",
       "page = vt_textureCoords(vt, uv);",
       "return texture(vt.texture, uv);",
+  "}",
+
+  "vec4 vt_textureGradBasic(in VirtualTexture vt, in vec2 uv, out vec4 page) {",
+      "page = vt_textureCoords(vt, uv);",
+      "vec2 gx = dFdx(uv);",
+      "vec2 gy = dFdy(uv);",
+      "return textureGrad(vt.texture, uv, gx, gy);",
   "}",
 
   "vec4 vt_textureLod(in VirtualTexture vt, in vec2 uv, in float lod, out vec4 page) {",
@@ -97,7 +112,7 @@ const pars_fragment = [
       "return textureGrad(vt.texture, uv, _gx, _gy);",
   "}",
 
-  "vec4 vt_texture(in VirtualTexture vt, in vec2 uv) { vec4 page; return vt_texture(vt, uv, page); }",
+  "vec4 vt_textureBasic(in VirtualTexture vt, in vec2 uv) { vec4 page; return vt_textureBasic(vt, uv, page); }",
   "vec4 vt_textureLod(in VirtualTexture vt, in vec2 uv, in float lod) { vec4 page; return vt_textureLod(vt, uv, lod, page); }",
   "vec4 vt_textureGrad(in VirtualTexture vt, in vec2 uv, in vec2 gx, in vec2 gy) { vec4 page; return vt_textureGrad(vt, uv, gx, gy, page); }",
 
