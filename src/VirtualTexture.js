@@ -59,7 +59,7 @@ export class VirtualTexture {
     };
 
     // init usage table
-    this.usageTable = new UsageTable(this.indirectionTable.size);
+    this.usageTable = new UsageTable(this.maxMipMapLevel);
 
     this.tileQueue.callback = function (tile) {
       var status = scope.cache.getPageStatus(tile.id); // was parentId... not sure why
