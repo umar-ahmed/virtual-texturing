@@ -64,9 +64,9 @@ export class IndirectionTable {
       }
     }
     this.texture = new DataTexture(
-      this.dataArrays[this.maxLevel],
-      this.size, //width
-      this.size, //height
+      null,
+      this.size,
+      this.size,
       RGBAIntegerFormat,
       UnsignedByteType,
       UVMapping,
@@ -78,6 +78,13 @@ export class IndirectionTable {
     this.texture.internalFormat = 'RGBA8UI';
     this.texture.name = 'indirection_table';
     this.texture.generateMipmaps = false;
+    for( let l = 0; l <= this.maxLevel; ++l) {
+      this.texture.mipmaps.push({
+        data : this.dataArrays[this.maxLevel - l],
+        width: 1 << (this.maxLevel - l),
+        height: 1 << (this.maxLevel - l)
+      });
+    }
     this.texture.needsUpdate = true;
   }
 
