@@ -25,7 +25,6 @@ export class VirtualTexture {
     this.tileSize = params.tileSize;
     this.tilePadding = params.tilePadding;
     this.pageCount = params.pageCount;
-    this.tileDeterminationRatio = params.tileDeterminationRatio;
     this.useProgressiveLoading = true;
 
     // init tile queue
@@ -39,7 +38,7 @@ export class VirtualTexture {
 
 
     // init tile determination program
-    this.tileDetermination = new TileDetermination();
+    this.tileDetermination = new TileDetermination(params.tileDeterminationRatio);
 
     // init page table
     this.indirectionTable = new IndirectionTable(this.minMipMapLevel, this.maxMipMapLevel);
@@ -81,10 +80,7 @@ export class VirtualTexture {
 
   setSize( width, height ) {
 
-    this.tileDetermination.setSize(
-      Math.floor( width * this.tileDeterminationRatio ),
-      Math.floor( height * this.tileDeterminationRatio )
-    );
+    this.tileDetermination.setSize(width, height);
 
   }
 
@@ -177,7 +173,7 @@ export class VirtualTexture {
 
       const uniforms = UniformsUtils.clone( VisibleTileShader.uniforms );
 
-      uniforms.vt_size.value = this.size;
+      uniforms.vt_size.value = [ this.size[0] * this.tileDetermination.ratio, this.size[1] * this.tileDetermination.ratio];
       uniforms.vt_minMipMapLevel.value = this.minMipMapLevel;
       uniforms.vt_maxMipMapLevel.value = this.maxMipMapLevel;
       uniforms.vt_tileCount.value = this.tileCount;

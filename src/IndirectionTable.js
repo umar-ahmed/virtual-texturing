@@ -8,7 +8,7 @@
  * level 1 has (size>>1) * (size>>1)
  * level n-th has only 1 entry
 */
-import { DataTexture, RGBAIntegerFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, NearestFilter }
+import { DataTexture, RGBAIntegerFormat, UnsignedByteType, UVMapping, ClampToEdgeWrapping, NearestFilter, NearestMipmapNearestFilter }
 from '../examples/jsm/three.module.js';
 
 import { TileId } from './TileId.js'
@@ -73,7 +73,7 @@ export class IndirectionTable {
       ClampToEdgeWrapping,
       ClampToEdgeWrapping,
       NearestFilter,
-      NearestFilter
+      NearestMipmapNearestFilter
     );
     this.texture.internalFormat = 'RGBA8UI';
     this.texture.name = 'indirection_table';
@@ -92,22 +92,19 @@ export class IndirectionTable {
 
     if( this.canvas ) return;
 
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = this.size;
-    this.canvas.height = this.size;
-    this.imageData = this.canvas.getContext('2d').createImageData(this.canvas.width, this.canvas.height);
+    this.canvas = [];
+    this.imageData = [];
 
-    var verticalPosition = (params && params.verticalPosition) ? params.verticalPosition : 130;
+    var verticalPosition = (params && params.verticalPosition) ? params.verticalPosition : 0;
     var horizontalPosition = (params && params.horizontalPosition) ? params.horizontalPosition : 10;
     var position = (params && params.position) ? params.position : "absolute";
     var zIndex = (params && params.zIndex) ? params.zIndex : "100";
     var borderColor = (params && params.borderColor) ? params.borderColor : "blue";
     var borderStyle = (params && params.borderStyle) ? params.borderStyle : "solid";
     var borderWidth = (params && params.borderWidth) ? params.borderWidth : 1;
-
+    var lineHeight = (params && params.lineHeight) ? params.lineHeight : 10; // in pixels
     var fontSize = (params && params.fontSize) ? params.fontSize : 13; // in pixels
     var fontFamily = (params && params.fontFamily) ? params.fontFamily : "Arial";
-    var lineHeight = (params && params.lineHeight) ? params.lineHeight : 20; // in pixels
 
     // create div title
     var divTitle = document.createElement('div');
@@ -123,27 +120,38 @@ export class IndirectionTable {
 
     divTitle.innerHTML = "Indirection Table";
     document.body.appendChild(divTitle);
+    verticalPosition += lineHeight;
 
-    this.canvas.style.top = verticalPosition + lineHeight + "px";
-    this.canvas.style.left = horizontalPosition + "px";
-    this.canvas.style.position = position;
-    this.canvas.style.zIndex = zIndex;
-    this.canvas.style.borderColor = borderColor;
-    this.canvas.style.borderStyle = borderStyle;
-    this.canvas.style.borderWidth = borderWidth + "px";
+    for( let l = this.minLevel; l <= this.maxLevel; ++l) {
+      const canvas = document.createElement('canvas');
+      this.canvas.push(canvas);
+      canvas.width = 1 << l;
+      canvas.height = 1 << l;
+      this.imageData[l] = canvas.getContext('2d').createImageData(canvas.width, canvas.height);
 
-    document.body.appendChild(this.canvas);
+      canvas.style.top = verticalPosition + lineHeight + "px";
+      canvas.style.left = horizontalPosition + "px";
+      canvas.style.position = position;
+      canvas.style.zIndex = zIndex;
+      canvas.style.borderColor = borderColor;
+      canvas.style.borderStyle = borderStyle;
+      canvas.style.borderWidth = borderWidth + "px";
+
+      verticalPosition += canvas.height + 3*borderWidth;
+
+      document.body.appendChild(canvas);
+    }
   }
 
-  writeToCanvas(cache) {
-    const data = this.dataArrays[this.maxLevel];
+  writeToCanvas(l, cache) {
+    const data = this.dataArrays[l];
     for (let j = 0; j < data.length; j += 4) {
-      this.imageData.data[j    ] = data[j    ] * 255 / cache.pageCount.x;
-      this.imageData.data[j + 1] = data[j + 1] * 255 / cache.pageCount.y;
-      this.imageData.data[j + 2] = data[j + 2] * 255 / this.maxLevel;
-      this.imageData.data[j + 3] = data[j + 3];
+      this.imageData[l].data[j + 0] = data[j + 2] * 255 / this.maxLevel;
+      this.imageData[l].data[j + 1] = data[j    ] * 255 / cache.pageCount.x;
+      this.imageData[l].data[j + 2] = data[j + 1] * 255 / cache.pageCount.y;
+      this.imageData[l].data[j + 3] = 255;//data[j + 3];
     }
-    this.canvas.getContext('2d').putImageData(this.imageData, 0, 0);
+    this.canvas[l].getContext('2d').putImageData(this.imageData[l], 0, 0);
   }
 
   writeToTexture() {
@@ -175,9 +183,11 @@ export class IndirectionTable {
 
 
   update (cache, renderCount) {
-    for( let l = 0; l <= this.maxLevel; ++l) this.setData(l, cache, renderCount);
+    for( let l = this.minLevel; l <= this.maxLevel; ++l) {
+      this.setData(l, cache, renderCount);
+      if (this.canvas) this.writeToCanvas(l, cache);
+    }
     this.writeToTexture();
-    if (this.canvas) this.writeToCanvas(cache);
   }
 
   add (tileId, pageId) {

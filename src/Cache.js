@@ -9,7 +9,7 @@ export const StatusAvailable = 1;
 export const StatusPendingDelete = 2;
 
 function createAnnotatedImageData(imageBitmap, x, y, z, l, lmax, x0, y0, pad, realTileSize) {
-  //return imageBitmap;
+  return imageBitmap;
 	const canvas = document.createElement( "canvas" );
 	const context = canvas.getContext( "2d" );
   canvas.width = imageBitmap.width;
@@ -92,9 +92,11 @@ export class Cache {
     );
     this.texture.generateMipmaps = false;
     this.texture.needsUpdate = true;
+    // this.maxTileLevels = 1;
     this.maxTileLevels = Math.floor(Math.log2(Math.max(this.realTileSize.x, this.realTileSize.y)));
     let width = this.width;
     let height = this.height;
+    //  for (let l = 0; l <= this.maxTileLevels; ++l) {
     while ( width > 0 || height > 0 ) {
       this.texture.mipmaps.push({
         data: null,

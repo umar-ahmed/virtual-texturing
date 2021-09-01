@@ -31,7 +31,7 @@
           tileSize: [128,128],
           tilePadding: 4,
           tileClamp: 0.5,
-          pageCount: [4,4],
+          pageCount: [16,16],
           tileDeterminationRatio: 0.125,
           getTilePath: function(tile) {
             const directory = '/examples/models/terrain/tiles/diffuse/';
@@ -49,7 +49,7 @@
           tilePadding: 0,
           tileClamp: 0.5,
           pageCount: [16,16],
-          tileDeterminationRatio: 0.125,
+          tileDeterminationRatio: 0.25,
           getTilePath: function(tile) {
             let url = 'https://wxs.ign.fr/3ht7xcw6f7nciopo16etuqp2/geoportail/wmts?LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={Z}&TILEROW={Y}&TILECOL={X}';
             url = url.replace('{X}', tile.x);
@@ -173,6 +173,7 @@
       function start(conf) {
         app.load(geometry, conf);
         app.run();
+        window.vt = app.virtualTexture;
       }
 
 

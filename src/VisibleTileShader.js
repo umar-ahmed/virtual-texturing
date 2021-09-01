@@ -33,15 +33,15 @@ const pars_fragment = [
     "vec2 coordPixels = uv * size;",
     "vec2 dx = dFdx(coordPixels);",
     "vec2 dy = dFdy(coordPixels);",
-    "float d = max(dot( dx, dx ), dot( dy, dy ) );",
-    "return 0.5 * log2( d ) - 1.0;",
+    "float d = min(dot( dx, dx ), dot( dy, dy ) );",
+    "return 0.5 * log2( d );",
   "}"
 ].join("\n");
 
 const fragment = [
   "float mipLevel  = floor( MipLevel( vUv, vt_size ));",
   "mipLevel = clamp(mipLevel, vt_minMipMapLevel, vt_maxMipMapLevel);",
-  "float size = vt_tileCount * exp2(-mipLevel);",
+  "float size = floor(exp2(vt_maxMipMapLevel-mipLevel));",
   "vec2 id = floor( vUv.xy * size );",
   "id = clamp(id, 0., size-1.);",
   "gl_FragColor = vec4(id, mipLevel, vt_id)/255.0;"

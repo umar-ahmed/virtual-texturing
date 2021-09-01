@@ -18,7 +18,8 @@ const pars_fragment = [
 
   "vec4 vt_textureCoords(in VirtualTexture vt, inout vec2 uv) {",
     // indirection table lookup
-    "vec4 page = vec4(texture2D( vt.cacheIndirection, uv ));",
+    "float bias = log2(min(vt.tileSize.x, vt.tileSize.y)) - 0.5;",
+    "vec4 page = vec4(texture( vt.cacheIndirection, uv, bias ));",
     "float l = exp2(page.z);",
     "vec2 inPageUv = fract(uv * l);",
     "vec2 paddingScale = 1.-2.*vt.padding;",
@@ -31,7 +32,7 @@ const pars_fragment = [
 
   "vec4 vt_textureCoordsLod(in VirtualTexture vt, inout vec2 uv, inout float lod) {",
   // indirection table lookup
-    "vec4 page = vec4(texture2D( vt.cacheIndirection, uv ));",
+    "vec4 page = vec4(textureLod( vt.cacheIndirection, uv, lod - 0.5 ));",
     "float l = exp2(page.z);",
     "vec2 inPageUv = fract(uv * l);",
     "vec2 paddingScale = 1.-2.*vt.padding;",
@@ -50,8 +51,10 @@ const pars_fragment = [
   "}",
 
   "vec4 vt_textureCoordsGrad(in VirtualTexture vt, inout vec2 uv, inout vec2 gx, inout vec2 gy) {",
+
   // indirection table lookup
-    "vec4 page = vec4(texture2D( vt.cacheIndirection, uv ));",
+    "vec2 gscale = vt.tileSize*exp(-0.5);",
+    "vec4 page = vec4(textureGrad( vt.cacheIndirection, uv, gx*gscale, gy*gscale ));",
     "float l = exp2(page.z);",
     "vec2 inPageUv = fract(uv * l);",
     "vec2 paddingScale = 1.-2.*vt.padding;",
