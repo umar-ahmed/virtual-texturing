@@ -9,7 +9,6 @@ export const StatusAvailable = 1;
 export const StatusPendingDelete = 2;
 
 function createAnnotatedImageData(imageBitmap, x, y, z, l, lmax, x0, y0, pad, realTileSize) {
-  return imageBitmap;
 	const canvas = document.createElement( "canvas" );
 	const context = canvas.getContext( "2d" );
   canvas.width = imageBitmap.width;
@@ -90,16 +89,17 @@ export class Cache {
       LinearFilter,
       LinearMipMapLinearFilter
     );
+    this.texture.anisotropy = 4;
     this.texture.generateMipmaps = false;
     this.texture.needsUpdate = true;
-    // this.maxTileLevels = 1;
-    this.maxTileLevels = Math.floor(Math.log2(Math.max(this.realTileSize.x, this.realTileSize.y)));
+    this.maxTileLevels = 1;
+    //this.maxTileLevels = Math.floor(Math.log2(Math.max(this.realTileSize.x, this.realTileSize.y)));
     let width = this.width;
     let height = this.height;
-    //  for (let l = 0; l <= this.maxTileLevels; ++l) {
+    //for (let l = 0; l <= this.maxTileLevels; ++l) {
     while ( width > 0 || height > 0 ) {
       this.texture.mipmaps.push({
-        data: null,
+        data: new Uint8Array(width * height * 4),
         width: width || 1,
         height: height || 1
       });
@@ -270,7 +270,8 @@ export class Cache {
       let y = this.realTileSize.y * this.getPageY(pageId)+tile.y0;
       let level = 0;
       function buildMipMaps(bitmap) {
-        tile.image = createAnnotatedImageData(bitmap, tile.x, tile.y, tile.z, level, scope.maxLevel, tile.x0, tile.y0, scope.padding, scope.realTileSize);
+        //tile.image = createAnnotatedImageData(bitmap, tile.x, tile.y, tile.z, level, scope.maxLevel, tile.x0, tile.y0, scope.padding, scope.realTileSize);
+        tile.image = bitmap;
         pos.set(x, y);
         renderer.copyTextureToTexture(pos, tile, scope.texture, level);
         x >>= 1;

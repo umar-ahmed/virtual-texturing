@@ -212,6 +212,7 @@ export class VirtualTexture {
       vt.tileSize = [ this.cache.realTileSize.x , this.cache.realTileSize.y ];
       vt.numPages = [ this.cache.pageCount.x , this.cache.pageCount.y ];
       vt.maxMipMapLevel = this.maxMipMapLevel;
+      vt.maxAniso = vt.texture.anisotropy;
       uniforms.bDebugCache.value = this.debugCache;
       uniforms.bDebugLevel.value = this.debugLevel;
       uniforms.bDebugLastHits.value = this.debugLastHits;

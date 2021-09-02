@@ -14,6 +14,7 @@ const pars_fragment = [
   " vec2 tileSize;",
   " vec2 numPages;",
   " float maxMipMapLevel;",
+  " float maxAniso;",
   "};",
 
   "vec4 vt_textureCoords(in VirtualTexture vt, inout vec2 uv) {",
@@ -52,20 +53,25 @@ const pars_fragment = [
 
   "vec4 vt_textureCoordsGrad(in VirtualTexture vt, inout vec2 uv, inout vec2 gx, inout vec2 gy) {",
 
+    "vec2 dx = gx * vt.tileSize;",
+    "vec2 dy = gy * vt.tileSize;",
+    "float dx2 = dot(dx, dx);",
+    "float dy2 = dot(dy, dy);",
+    "float minLod = vt.maxMipMapLevel + 0.5 * log2( max( min(dx2, dy2), max(dx2, dy2)/vt.maxAniso ));",
+
   // indirection table lookup
-    "vec2 gscale = vt.tileSize*exp(-0.5);",
-    "vec4 page = vec4(textureGrad( vt.cacheIndirection, uv, gx*gscale, gy*gscale ));",
+    "vec4 page = vec4(textureLod( vt.cacheIndirection, uv, minLod - 0.5));",
     "float l = exp2(page.z);",
     "vec2 inPageUv = fract(uv * l);",
     "vec2 paddingScale = 1.-2.*vt.padding;",
     "inPageUv = vt.padding + inPageUv * paddingScale;",
 
     // compute lod
-    "vec2 dfactor = exp2(page.z - vt.maxMipMapLevel) * paddingScale;",
-    "vec2 dx = gx * dfactor;",
-    "vec2 dy = gy * dfactor;",
-    "float d = max(dot( dx, dx ), dot( dy, dy ) );",
-    "float lod = clamp(0.5 * log2( d ), 0., vt.maxMipMapLevel);",
+    "vec2 scale = l * paddingScale;",
+    "gx *= scale;",
+    "gy *= scale;",
+    "float d = max(dot( gx, gx ), dot( gy, gy ) );",
+    "float lod = clamp(0.5 * log2( d ) - vt.maxMipMapLevel, 0., vt.maxMipMapLevel);",
 
     // clamp inPageUv
     "vec4 clamping;",
@@ -74,9 +80,8 @@ const pars_fragment = [
     "inPageUv = clamp(inPageUv, clamping.xy, clamping.zw);",
 
     // compute gradients
-    "vec2 gfactor = l * paddingScale / vt.numPages;",
-    "gx *= gfactor;",
-    "gy *= gfactor;",
+    "gx /= vt.numPages;",
+    "gy /= vt.numPages;",
 
     // clamp gradients
     "vec4 gminmax = clamping - inPageUv.xyxy;",
