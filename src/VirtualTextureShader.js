@@ -6,6 +6,7 @@ const uniforms = {
 
 const pars_fragment = [
   "precision highp usampler2D;",
+  "precision highp isampler2D;",
 
   "struct VirtualTexture {",
   " sampler2D texture;",

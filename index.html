@@ -24,8 +24,7 @@
 
       app.start();
 
-      var config = [
-        {
+      var config = {
           maxMipMapLevel: 4,
           minMipMapLevel: 0,
           tileSize: [128,128],
@@ -41,133 +40,7 @@
             const url = directory + filename;
             return { url };
           }
-        },
-        {
-          maxMipMapLevel: 9,
-          minMipMapLevel: 0,
-          tileSize: [256,256],
-          tilePadding: 0,
-          tileClamp: 0.5,
-          pageCount: [16,16],
-          tileDeterminationRatio: 0.25,
-          getTilePath: function(tile) {
-            let url = 'https://wxs.ign.fr/3ht7xcw6f7nciopo16etuqp2/geoportail/wmts?LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={Z}&TILEROW={Y}&TILECOL={X}';
-            url = url.replace('{X}', tile.x);
-            url = url.replace('{Y}', tile.y);
-            url = url.replace('{Z}', tile.z);
-            return { url };
-          }
-        },
-        {
-          minMipMapLevel: 0,
-          iip: 'https://wxs.ign.fr/x7yv499pbcguxhhxh8syehwe/iipsrv.fcgi',
-          id: 'DEMAT.PVA/0317-0101/IGNF_PVA_1-0__1944__C0317-0101_1944_106G2481_4026.jp2',
-          img_url: '{IIP}?FIF={ID}&LYR=20&JTL={JTL}',
-          info_url: '{IIP}?FIF={ID}&obj=IIP,1.0&obj=Max-size&obj=Tile-size&obj=Resolution-number',
-          tilePadding: 0,
-          tileClamp: 0.5,
-          pageCount: [16,16],
-          tileDeterminationRatio: 0.125,
-          init: function(info) {
-            const scope = this;
-            const info_url = this.info_url.replace('{IIP}', this.iip).replace('{ID}', this.id);
-            this.url = this.img_url.replace('{IIP}', this.iip).replace('{ID}', this.id);
-            return fetch(info_url)
-            .then((response) => response.text())
-            .then((txt) => Object.fromEntries(txt.split(/\r?\n/)
-              .map((line) => line.split(':'))
-              .filter((line) => line.length == 2)
-              .map((entry) => {
-                const values = entry[1].split(/\s+/).map((v) => parseInt(v, 10));
-                return [entry[0], values];
-              })
-            ))
-            .then((info) => {
-              scope.maxMipMapLevel = info['Resolution-number']-1;
-              scope.tileSize = info['Tile-size'];
-              scope.size = info['Max-size'];
-              scope.numTiles = [];
-              for(let z=0; z<=scope.maxMipMapLevel; ++z) {
-                const TW = scope.tileSize[0] << (scope.maxMipMapLevel - z);
-                const TH = scope.tileSize[1] << (scope.maxMipMapLevel - z);
-                const W = Math.ceil(scope.size[0]/TW);
-                const H = Math.ceil(scope.size[1]/TH);
-                scope.numTiles[z] = [W, H];
-              }
-              scope.getTilePath = function(tile) {
-                const W = scope.numTiles[tile.z][0];
-                const H = scope.numTiles[tile.z][1];
-                if ( tile.x >= W || tile.y >= H ) return null;
-                const url = scope.url.replace('{JTL}', tile.z+','+(tile.x+W*tile.y));
-                return { url };
-              };
-              return scope;
-            });
-          },
-        },
-        {
-          minMipMapLevel: 0,
-          iiif: 'http://134.158.75.67:8081',
-          id: 'Niepce%2FGros%2F2003.15.676.15P01RB.jp2',
-          img_url: '{IIIF}/{ID}/{region}/{size}/0/default.jpg',
-          info_url: '{IIIF}/{ID}/info.json',
-          tilePadding: 4,
-          tileClamp: 0.5,
-          tileSize: [256, 256],
-          pageCount: [16,16],
-          tileDeterminationRatio: 0.125,
-          init: function(info) {
-            const scope = this;
-            const info_url = this.info_url
-            .replace('{IIIF}', this.iiif)
-            .replace('{ID}', this.id);
-            this.url = this.img_url
-            .replace('{IIIF}', this.iiif)
-            .replace('{ID}', this.id);
-            return fetch(info_url)
-            .then((response) => response.json())
-            .then((info) => {
-              const tileCount = Math.ceil(Math.max(info.width/scope.tileSize[0], info.height/scope.tileSize[1]));
-              scope.maxMipMapLevel = Math.ceil(Math.log2(tileCount));
-              scope.size = [ info.width, info.height ];
-              scope.numTiles = [];
-              for(let z=0; z<=scope.maxMipMapLevel; ++z) {
-                const TW = scope.tileSize[0] << (scope.maxMipMapLevel - z);
-                const TH = scope.tileSize[1] << (scope.maxMipMapLevel - z);
-                const W = Math.ceil(scope.size[0]/TW);
-                const H = Math.ceil(scope.size[1]/TH);
-                scope.numTiles[z] = [W, H];
-              }
-              scope.getTilePath = function(tile) {
-                const W = scope.numTiles[tile.z][0];
-                const H = scope.numTiles[tile.z][1];
-                if ( tile.x >= W || tile.y >= H ) return null;
-                const z = scope.maxMipMapLevel - tile.z;
-                const w = scope.tileSize[0] << z;
-                const h = scope.tileSize[1] << z;
-                const pad = scope.tilePadding << z;
-                const x = tile.x * w - pad;
-                const y = tile.y * h - pad;
-                const x0 = Math.max(x, 0);
-                const y0 = Math.max(y, 0);
-                const x1 = Math.min(x + w + 2*pad, scope.size[0]);
-                const y1 = Math.min(y + h + 2*pad, scope.size[1]);
-                const w0 = x1-x0;
-                const h0 = y1-y0;
-                const w1 = w0 >> z;
-                const h1 = h0 >> z;
-
-                const url = scope.url
-                .replace('{region}', [x0,y0,w0,h0].join(','))
-                .replace('{size}', [w1, h1].join(','));
-                return { url, x0: (x0-x)>>z, y0:(y0-y)>>z };
-              };
-              console.log(scope);
-              return scope;
-            });
-          },
         }
-      ];
 
       var geometry = new PlaneGeometry(100, 100, 100);
       function start(conf) {
@@ -177,10 +50,7 @@
       }
 
 
-      //start(config[0]);
-      start(config[1]);
-      //config[2].init().then(start);
-      //config[3].init().then(start);
+      start(config);
 
     </script>
   </body>
